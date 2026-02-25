@@ -2,7 +2,7 @@
 
 Northstar is a macOS-focused file explorer built with Avalonia UI, inspired by Windows Explorer interactions.
 
-![Northstar Screenshot](docs/screenshot.png?v=2)
+![Northstar Screenshot](https://raw.githubusercontent.com/brooklynDev/Northstar/1bce5bc/docs/screenshot.png)
 
 ## Releases
 
