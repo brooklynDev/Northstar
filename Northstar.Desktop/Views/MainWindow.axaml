@@ -517,6 +517,7 @@
                                     <MenuItem Header="Open in New Tab" Click="OpenInNewTabMenu_OnClick" />
                                     <Separator />
                                     <MenuItem Header="Rename" Click="RenameItemMenu_OnClick" />
+                                    <MenuItem Header="Get Info" Click="GetInfoMenu_OnClick" />
                                     <Separator />
                                     <MenuItem Header="Copy" Click="CopyItemMenu_OnClick" />
                                     <MenuItem Header="Cut" Click="CutItemMenu_OnClick" />
@@ -540,6 +541,7 @@
                                                 <MenuItem Header="Open in New Tab" Click="OpenInNewTabMenu_OnClick" Tag="{Binding}" />
                                                 <Separator />
                                                 <MenuItem Header="Rename" Click="RenameItemMenu_OnClick" Tag="{Binding}" />
+                                                <MenuItem Header="Get Info" Click="GetInfoMenu_OnClick" Tag="{Binding}" />
                                                 <Separator />
                                                 <MenuItem Header="Copy" Click="CopyItemMenu_OnClick" Tag="{Binding}" />
                                                 <MenuItem Header="Cut" Click="CutItemMenu_OnClick" Tag="{Binding}" />

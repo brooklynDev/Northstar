@@ -139,6 +139,13 @@ public partial class MainWindow
                     return;
                 }
 
+                if (hasPrimaryModifier && e.Key == Key.I)
+                {
+                    _ = ShowGetInfoDialogAsync(viewModel, viewModel.SelectedExplorerItem);
+                    e.Handled = true;
+                    return;
+                }
+
                 if (hasPrimaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.N)
                 {
                     _ = CreateNewFolderAndRenameAsync(viewModel);

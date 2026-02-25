@@ -3,10 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Northstar.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -104,7 +106,7 @@ public partial class MainWindow
                 continue;
             }
 
-            if (header is "Open" or "Open in New Tab" or "Rename" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
+            if (header is "Open" or "Open in New Tab" or "Rename" or "Get Info" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
             {
                 menuItem.IsEnabled = hasSelection;
                 continue;
@@ -145,6 +147,17 @@ public partial class MainWindow
         }
 
         await RenameSelectedAsync((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private async void GetInfoMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var target = (sender as MenuItem)?.Tag as FileSystemItemViewModel;
+        await ShowGetInfoDialogAsync(viewModel, target);
     }
 
     private void CopyItemMenu_OnClick(object? sender, RoutedEventArgs e)
@@ -332,18 +345,24 @@ public partial class MainWindow
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ExtendClientAreaToDecorationsHint = false,
         };
+        dialog.Background = GetThemeBrush("WindowBackgroundBrush", new SolidColorBrush(Color.Parse("#10131A")));
+        dialog.Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White);
 
         var showHiddenCheck = new CheckBox
         {
             Content = "Show hidden files",
             IsChecked = settings.ShowHiddenFiles,
             Margin = new Thickness(0, 6, 0, 10),
+            Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
         };
 
         var startFolderBox = new TextBox
         {
             Text = settings.DefaultStartFolder,
             Watermark = "Optional. Leave blank to start at your Home folder.",
+            Background = GetThemeBrush("PathSurfaceBackgroundBrush", new SolidColorBrush(Color.Parse("#0E131D"))),
+            Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
+            BorderBrush = GetThemeBrush("PathSurfaceBorderBrush", new SolidColorBrush(Color.Parse("#2A344A"))),
         };
 
         var useCurrentButton = new Button
@@ -361,6 +380,8 @@ public partial class MainWindow
                 ? settings.ThemeName
                 : viewModel.SelectedTheme,
             HorizontalAlignment = HorizontalAlignment.Stretch,
+            Background = GetThemeBrush("PathSurfaceBackgroundBrush", new SolidColorBrush(Color.Parse("#0E131D"))),
+            Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
         };
 
         var cancelButton = new Button
@@ -389,6 +410,9 @@ public partial class MainWindow
         dialog.Content = new Border
         {
             Padding = new Thickness(14),
+            Background = GetThemeBrush("ExplorerPaneBackgroundBrush", new SolidColorBrush(Color.Parse("#121A28"))),
+            BorderBrush = GetThemeBrush("ChromeBorderBrush", new SolidColorBrush(Color.Parse("#2A3140"))),
+            BorderThickness = new Thickness(1),
             Child = new StackPanel
             {
                 Spacing = 6,
@@ -443,6 +467,8 @@ public partial class MainWindow
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ExtendClientAreaToDecorationsHint = false,
         };
+        dialog.Background = GetThemeBrush("WindowBackgroundBrush", new SolidColorBrush(Color.Parse("#10131A")));
+        dialog.Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White);
 
         string? result = null;
         var textBox = new TextBox
@@ -450,6 +476,9 @@ public partial class MainWindow
             Text = currentName,
             Margin = new Thickness(0, 0, 0, 12),
             HorizontalAlignment = HorizontalAlignment.Stretch,
+            Background = GetThemeBrush("PathSurfaceBackgroundBrush", new SolidColorBrush(Color.Parse("#0E131D"))),
+            Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
+            BorderBrush = GetThemeBrush("PathSurfaceBorderBrush", new SolidColorBrush(Color.Parse("#2A344A"))),
         };
 
         var cancelButton = new Button
@@ -489,6 +518,9 @@ public partial class MainWindow
         dialog.Content = new Border
         {
             Padding = new Thickness(14),
+            Background = GetThemeBrush("ExplorerPaneBackgroundBrush", new SolidColorBrush(Color.Parse("#121A28"))),
+            BorderBrush = GetThemeBrush("ChromeBorderBrush", new SolidColorBrush(Color.Parse("#2A3140"))),
+            BorderThickness = new Thickness(1),
             Child = new StackPanel
             {
                 Spacing = 8,
@@ -524,5 +556,196 @@ public partial class MainWindow
 
         await dialog.ShowDialog(this);
         return result;
+    }
+
+    private async Task ShowGetInfoDialogAsync(MainWindowViewModel viewModel, FileSystemItemViewModel? contextItem)
+    {
+        var selectedItems = viewModel.SelectedExplorerItems
+            .Where(item => item is not null)
+            .ToList();
+
+        var target = contextItem ?? viewModel.SelectedExplorerItem;
+        if (target is not null && selectedItems.All(item => !PathsEqual(item.FullPath, target.FullPath)))
+        {
+            selectedItems = [target];
+        }
+        else if (selectedItems.Count == 0 && target is not null)
+        {
+            selectedItems.Add(target);
+        }
+
+        if (selectedItems.Count == 0)
+        {
+            return;
+        }
+
+        var dialog = new Window
+        {
+            Title = selectedItems.Count == 1 ? "Get Info" : $"Get Info ({selectedItems.Count} Items)",
+            Width = 540,
+            Height = 360,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ExtendClientAreaToDecorationsHint = false,
+        };
+        dialog.Background = GetThemeBrush("WindowBackgroundBrush", new SolidColorBrush(Color.Parse("#10131A")));
+        dialog.Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White);
+
+        var lines = BuildInfoLines(selectedItems);
+        var contentPanel = new StackPanel { Spacing = 8 };
+
+        foreach (var (label, value) in lines)
+        {
+            contentPanel.Children.Add(new TextBlock
+            {
+                Text = label,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
+            });
+            contentPanel.Children.Add(new TextBlock
+            {
+                Text = value,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = GetThemeBrush("ColumnHeaderForegroundBrush", Brushes.White),
+                Margin = new Thickness(0, 0, 0, 6),
+            });
+        }
+
+        var closeButton = new Button
+        {
+            Content = "Close",
+            MinWidth = 88,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 10, 0, 0),
+        };
+        closeButton.Click += (_, _) => dialog.Close();
+
+        dialog.Content = new Border
+        {
+            Padding = new Thickness(14),
+            Background = GetThemeBrush("ExplorerPaneBackgroundBrush", new SolidColorBrush(Color.Parse("#121A28"))),
+            BorderBrush = GetThemeBrush("ChromeBorderBrush", new SolidColorBrush(Color.Parse("#2A3140"))),
+            BorderThickness = new Thickness(1),
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("*,Auto"),
+                Children =
+                {
+                    new ScrollViewer
+                    {
+                        VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                        Content = contentPanel,
+                    },
+                    closeButton,
+                },
+            },
+        };
+        Grid.SetRow(closeButton, 1);
+
+        await dialog.ShowDialog(this);
+    }
+
+    private static List<(string Label, string Value)> BuildInfoLines(IReadOnlyList<FileSystemItemViewModel> items)
+    {
+        if (items.Count == 1)
+        {
+            return BuildSingleItemInfoLines(items[0]);
+        }
+
+        var directoryCount = items.Count(item => item.IsDirectory);
+        var fileCount = items.Count - directoryCount;
+        var totalKnownSize = items.Where(item => !item.IsDirectory).Sum(item => item.SortSize);
+        var latestModified = items.Max(item => item.SortModifiedUtc).ToLocalTime().ToString("MMM d, yyyy h:mm tt");
+
+        return
+        [
+            ("Selection", $"{items.Count} items"),
+            ("Contains", $"{directoryCount} folder(s), {fileCount} file(s)"),
+            ("Combined file size", FormatBytes(totalKnownSize)),
+            ("Latest modified", latestModified),
+        ];
+    }
+
+    private static List<(string Label, string Value)> BuildSingleItemInfoLines(FileSystemItemViewModel item)
+    {
+        var path = item.FullPath;
+        var parent = Path.GetDirectoryName(path) ?? "/";
+        var lines = new List<(string Label, string Value)>
+        {
+            ("Name", item.Name),
+            ("Kind", item.Type),
+            ("Path", path),
+            ("Location", parent),
+            ("Modified", item.Modified),
+        };
+
+        try
+        {
+            if (item.IsDirectory)
+            {
+                var directoryInfo = new DirectoryInfo(path);
+                lines.Add(("Created", directoryInfo.CreationTime.ToString("MMM d, yyyy h:mm tt")));
+                lines.Add(("Contents", $"{SafeCount(() => Directory.EnumerateFileSystemEntries(path).Count())} top-level item(s)"));
+            }
+            else
+            {
+                var fileInfo = new FileInfo(path);
+                lines.Add(("Created", fileInfo.CreationTime.ToString("MMM d, yyyy h:mm tt")));
+                lines.Add(("Size", $"{item.Size} ({fileInfo.Length:N0} bytes)"));
+            }
+        }
+        catch
+        {
+            lines.Add(("Status", "Some details are unavailable for this item."));
+        }
+
+        return lines;
+    }
+
+    private static bool PathsEqual(string left, string right)
+        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+
+    private static int SafeCount(Func<int> getter)
+    {
+        try
+        {
+            return getter();
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] suffixes = ["B", "KB", "MB", "GB", "TB"];
+        double value = Math.Max(bytes, 0);
+        var suffixIndex = 0;
+
+        while (value >= 1024 && suffixIndex < suffixes.Length - 1)
+        {
+            value /= 1024;
+            suffixIndex++;
+        }
+
+        return $"{value:0.#} {suffixes[suffixIndex]}";
+    }
+
+    private IBrush GetThemeBrush(string key, IBrush fallback)
+    {
+        var themeVariant = ActualThemeVariant;
+
+        if (Resources.TryGetResource(key, themeVariant, out var resource) && resource is IBrush localBrush)
+        {
+            return localBrush;
+        }
+
+        if (Application.Current?.Resources.TryGetResource(key, themeVariant, out resource) == true && resource is IBrush appBrush)
+        {
+            return appBrush;
+        }
+
+        return fallback;
     }
 }
