@@ -83,6 +83,13 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (hasPrimaryModifier && e.Key == Key.OemComma)
+            {
+                _ = OpenPreferencesAsync(viewModel);
+                e.Handled = true;
+                return;
+            }
+
             if (ShouldRouteToExplorer(e.Source))
             {
                 if (hasPrimaryModifier && e.Key == Key.C)
@@ -320,6 +327,16 @@ public partial class MainWindow : Window
         viewModel.OpenInTerminalCommand.Execute(null);
     }
 
+    private async void PreferencesButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        await OpenPreferencesAsync(viewModel);
+    }
+
     private static void TrySelectByPrefix(MainWindowViewModel viewModel, ListBox? listBox, string query)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -555,6 +572,102 @@ public partial class MainWindow : Window
         }
 
         _ = viewModel.TryRenameItem(target, proposedName);
+    }
+
+    private async Task OpenPreferencesAsync(MainWindowViewModel viewModel)
+    {
+        var settings = viewModel.GetPreferences();
+
+        var dialog = new Window
+        {
+            Title = "Preferences",
+            Width = 520,
+            Height = 240,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ExtendClientAreaToDecorationsHint = false,
+        };
+
+        var showHiddenCheck = new CheckBox
+        {
+            Content = "Show hidden files",
+            IsChecked = settings.ShowHiddenFiles,
+            Margin = new Thickness(0, 6, 0, 10),
+        };
+
+        var startFolderBox = new TextBox
+        {
+            Text = settings.DefaultStartFolder,
+            Watermark = "Optional. Leave blank to start at your Home folder.",
+        };
+
+        var useCurrentButton = new Button
+        {
+            Content = "Use Current Folder",
+            MinWidth = 140,
+            Margin = new Thickness(0, 8, 0, 0),
+        };
+        useCurrentButton.Click += (_, _) => startFolderBox.Text = viewModel.CurrentPath;
+
+        var cancelButton = new Button
+        {
+            Content = "Cancel",
+            MinWidth = 88,
+            Margin = new Thickness(0, 0, 8, 0),
+        };
+        cancelButton.Click += (_, _) => dialog.Close();
+
+        var saveButton = new Button
+        {
+            Content = "Save",
+            MinWidth = 88,
+        };
+        saveButton.Click += (_, _) =>
+        {
+            viewModel.ApplyPreferences(
+                showHiddenCheck.IsChecked == true,
+                startFolderBox.Text);
+            dialog.Close();
+        };
+
+        dialog.Content = new Border
+        {
+            Padding = new Thickness(14),
+            Child = new StackPanel
+            {
+                Spacing = 6,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "General",
+                        FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                        Margin = new Thickness(0, 0, 0, 4),
+                    },
+                    showHiddenCheck,
+                    new TextBlock
+                    {
+                        Text = "Default start folder",
+                    },
+                    startFolderBox,
+                    useCurrentButton,
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Margin = new Thickness(0, 12, 0, 0),
+                        Children =
+                        {
+                            cancelButton,
+                            saveButton,
+                        },
+                    },
+                },
+            },
+        };
+
+        await dialog.ShowDialog(this);
+        ExplorerList.Focus();
     }
 
     private async Task<string?> ShowRenameDialogAsync(string currentName)

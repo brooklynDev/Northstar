@@ -220,11 +220,16 @@
                                  Padding="10,7" />
                     </StackPanel>
 
-                    <Button Grid.Column="2"
-                            Classes="nav"
-                            Command="{Binding OpenSelectedCommand}"
-                            Content="Open Selected"
-                            MinWidth="120" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <Button Classes="nav"
+                                Command="{Binding OpenSelectedCommand}"
+                                Content="Open Selected"
+                                MinWidth="120" />
+                        <Button Classes="nav"
+                                Click="PreferencesButton_OnClick"
+                                Content="⚙"
+                                ToolTip.Tip="Preferences" />
+                    </StackPanel>
                 </Grid>
             </Border>
 

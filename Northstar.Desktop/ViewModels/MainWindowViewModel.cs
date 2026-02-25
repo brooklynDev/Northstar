@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Northstar.Desktop.Models;
 using Northstar.Desktop.Services;
 
 namespace Northstar.Desktop.ViewModels;
@@ -19,6 +20,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly Stack<string> _backHistory = new();
     private readonly Stack<string> _forwardHistory = new();
     private readonly MacFileIconProvider _iconProvider = new();
+    private readonly AppSettingsStore _settingsStore = new();
     private readonly List<string> _clipboardPaths = [];
     private readonly object _watcherSync = new();
     private FileSystemWatcher? _directoryWatcher;
@@ -44,6 +46,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private FileSystemItemViewModel? selectedExplorerItem;
+
+    [ObservableProperty]
+    private bool showHiddenFiles;
+
+    [ObservableProperty]
+    private string defaultStartFolder = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NameSortIndicator))]
@@ -79,12 +87,30 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
+        var settings = _settingsStore.Load();
+        ShowHiddenFiles = settings.ShowHiddenFiles;
+        DefaultStartFolder = settings.DefaultStartFolder ?? string.Empty;
+
         BuildQuickAccess();
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        OpenDirectory(home, addToHistory: false);
+        var startPath = !string.IsNullOrWhiteSpace(DefaultStartFolder) && Directory.Exists(DefaultStartFolder)
+            ? DefaultStartFolder
+            : home;
+        OpenDirectory(startPath, addToHistory: false);
     }
 
     partial void OnSearchTextChanged(string value) => ApplySearchFilter();
+
+    partial void OnShowHiddenFilesChanged(bool value)
+    {
+        SaveSettings();
+        OpenDirectory(CurrentPath, addToHistory: false);
+    }
+
+    partial void OnDefaultStartFolderChanged(string value)
+    {
+        SaveSettings();
+    }
 
     private bool CanGoBack() => _backHistory.Count > 0;
 
@@ -567,6 +593,11 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             foreach (var directory in Directory.EnumerateDirectories(path).OrderBy(d => d, StringComparer.OrdinalIgnoreCase).Take(80))
             {
+                if (!ShouldIncludeEntry(directory))
+                {
+                    continue;
+                }
+
                 var name = Path.GetFileName(directory);
                 if (string.IsNullOrWhiteSpace(name))
                 {
@@ -633,6 +664,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 try
                 {
+                    if (!ShouldIncludeEntry(directoryPath))
+                    {
+                        continue;
+                    }
+
                     var info = new DirectoryInfo(directoryPath);
                     directories.Add(FileSystemItemViewModel.FromDirectory(
                         info,
@@ -648,6 +684,11 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 try
                 {
+                    if (!ShouldIncludeEntry(filePath))
+                    {
+                        continue;
+                    }
+
                     var info = new FileInfo(filePath);
                     files.Add(FileSystemItemViewModel.FromFile(
                         info,
@@ -766,6 +807,23 @@ public partial class MainWindowViewModel : ViewModelBase
         return candidates.Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
+    public AppSettings GetPreferences()
+    {
+        return new AppSettings
+        {
+            ShowHiddenFiles = ShowHiddenFiles,
+            DefaultStartFolder = DefaultStartFolder,
+        };
+    }
+
+    public void ApplyPreferences(bool showHidden, string? defaultStartFolderValue)
+    {
+        ShowHiddenFiles = showHidden;
+        DefaultStartFolder = defaultStartFolderValue?.Trim() ?? string.Empty;
+        SaveSettings();
+        OpenDirectory(CurrentPath, addToHistory: false);
+    }
+
     public void Shutdown()
     {
         lock (_watcherSync)
@@ -871,6 +929,44 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 // Ignore watcher refresh errors in this basic version.
             }
+        });
+    }
+
+    private bool ShouldIncludeEntry(string path)
+    {
+        if (ShowHiddenFiles)
+        {
+            return true;
+        }
+
+        var name = Path.GetFileName(path);
+        if (!string.IsNullOrWhiteSpace(name) && name.StartsWith(".", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            var attributes = File.GetAttributes(path);
+            if (attributes.HasFlag(FileAttributes.Hidden))
+            {
+                return false;
+            }
+        }
+        catch
+        {
+            // If attributes cannot be read, keep the entry visible.
+        }
+
+        return true;
+    }
+
+    private void SaveSettings()
+    {
+        _settingsStore.Save(new AppSettings
+        {
+            ShowHiddenFiles = ShowHiddenFiles,
+            DefaultStartFolder = DefaultStartFolder,
         });
     }
 
