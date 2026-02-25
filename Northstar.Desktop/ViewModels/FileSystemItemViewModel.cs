@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Avalonia.Media;
 
 namespace Northstar.Desktop.ViewModels;
 
@@ -12,7 +13,8 @@ public sealed class FileSystemItemViewModel
         string type,
         string size,
         DateTimeOffset modifiedUtc,
-        string glyph)
+        IImage? icon,
+        string iconGlyph)
     {
         Name = name;
         FullPath = fullPath;
@@ -20,7 +22,8 @@ public sealed class FileSystemItemViewModel
         Type = type;
         Size = size;
         Modified = modifiedUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt");
-        Glyph = glyph;
+        Icon = icon;
+        IconGlyph = iconGlyph;
     }
 
     public string Name { get; }
@@ -35,9 +38,11 @@ public sealed class FileSystemItemViewModel
 
     public string Modified { get; }
 
-    public string Glyph { get; }
+    public IImage? Icon { get; }
 
-    public static FileSystemItemViewModel FromDirectory(DirectoryInfo info)
+    public string IconGlyph { get; }
+
+    public static FileSystemItemViewModel FromDirectory(DirectoryInfo info, IImage? icon)
     {
         return new FileSystemItemViewModel(
             name: info.Name,
@@ -46,10 +51,11 @@ public sealed class FileSystemItemViewModel
             type: "Folder",
             size: "--",
             modifiedUtc: info.LastWriteTimeUtc,
-            glyph: "▣");
+            icon: icon,
+            iconGlyph: "📁");
     }
 
-    public static FileSystemItemViewModel FromFile(FileInfo info)
+    public static FileSystemItemViewModel FromFile(FileInfo info, IImage? icon)
     {
         return new FileSystemItemViewModel(
             name: info.Name,
@@ -58,7 +64,8 @@ public sealed class FileSystemItemViewModel
             type: BuildTypeLabel(info.Extension),
             size: FormatSize(info.Length),
             modifiedUtc: info.LastWriteTimeUtc,
-            glyph: "•");
+            icon: icon,
+            iconGlyph: BuildFallbackGlyph(info.Extension));
     }
 
     private static string BuildTypeLabel(string extension)
@@ -84,5 +91,23 @@ public sealed class FileSystemItemViewModel
         }
 
         return $"{value:0.#} {suffixes[suffixIndex]}";
+    }
+
+    private static string BuildFallbackGlyph(string extension)
+    {
+        var ext = extension.Trim().ToLowerInvariant();
+        return ext switch
+        {
+            ".png" or ".jpg" or ".jpeg" or ".gif" or ".bmp" or ".webp" or ".heic" => "🖼️",
+            ".mp4" or ".mov" or ".mkv" or ".avi" => "🎬",
+            ".mp3" or ".wav" or ".m4a" or ".flac" => "🎵",
+            ".zip" or ".tar" or ".gz" or ".7z" => "🗜️",
+            ".pdf" => "📕",
+            ".doc" or ".docx" or ".pages" => "📘",
+            ".xls" or ".xlsx" or ".numbers" => "📗",
+            ".ppt" or ".pptx" or ".key" => "📙",
+            ".cs" or ".js" or ".ts" or ".tsx" or ".jsx" or ".json" or ".xml" or ".yml" or ".yaml" or ".md" => "⌘",
+            _ => "📄",
+        };
     }
 }

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Northstar.Desktop.Services;
 
 namespace Northstar.Desktop.ViewModels;
 
@@ -13,6 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly Stack<string> _backHistory = new();
     private readonly Stack<string> _forwardHistory = new();
+    private readonly MacFileIconProvider _iconProvider = new();
     private List<FileSystemItemViewModel> _allItems = [];
 
     [ObservableProperty]
@@ -220,7 +222,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 try
                 {
                     var info = new DirectoryInfo(directoryPath);
-                    directories.Add(FileSystemItemViewModel.FromDirectory(info));
+                    directories.Add(FileSystemItemViewModel.FromDirectory(
+                        info,
+                        _iconProvider.GetIcon(info.FullName, isDirectory: true)));
                 }
                 catch
                 {
@@ -233,7 +237,9 @@ public partial class MainWindowViewModel : ViewModelBase
                 try
                 {
                     var info = new FileInfo(filePath);
-                    files.Add(FileSystemItemViewModel.FromFile(info));
+                    files.Add(FileSystemItemViewModel.FromFile(
+                        info,
+                        _iconProvider.GetIcon(info.FullName, isDirectory: false)));
                 }
                 catch
                 {

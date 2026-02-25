@@ -79,17 +79,7 @@
             <Setter Property="BorderBrush" Value="#2E3B54" />
         </Style>
 
-        <Style Selector="Button.openName">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Foreground" Value="#CFE2FF" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
-            <Setter Property="HorizontalAlignment" Value="Left" />
-        </Style>
-
-        <Style Selector="Button.openName:pointerover">
+        <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover TextBlock.fileName">
             <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
 
@@ -202,6 +192,7 @@
                                  x:Name="ExplorerList"
                                  ItemsSource="{Binding ExplorerItems}"
                                  SelectedItem="{Binding SelectedExplorerItem}"
+                                 DoubleTapped="ExplorerList_OnDoubleTapped"
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Margin="8,0,8,8">
@@ -209,11 +200,17 @@
                                 <DataTemplate x:DataType="vm:FileSystemItemViewModel">
                                     <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="8,10">
                                         <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <TextBlock Text="{Binding Glyph}" Foreground="#82A8DE" VerticalAlignment="Center" />
-                                            <Button Classes="openName"
-                                                    Command="{Binding $parent[Window].DataContext.OpenItemCommand}"
-                                                    CommandParameter="{Binding}"
-                                                    Content="{Binding Name}" />
+                                            <Grid Width="18" Height="18" VerticalAlignment="Center">
+                                                <Image Source="{Binding Icon}" Stretch="Uniform" />
+                                                <TextBlock Text="{Binding IconGlyph}"
+                                                           FontSize="14"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center" />
+                                            </Grid>
+                                            <TextBlock Classes="fileName"
+                                                       Text="{Binding Name}"
+                                                       Foreground="#CFE2FF"
+                                                       VerticalAlignment="Center" />
                                         </StackPanel>
 
                                         <TextBlock Grid.Column="1" Text="{Binding Type}" Foreground="#C8D3E6" VerticalAlignment="Center" />
