@@ -27,13 +27,24 @@ public partial class MainWindowViewModel : ViewModelBase
     private string searchText = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPathReadMode))]
+    private bool isPathEditMode;
+
+    [ObservableProperty]
+    private string pathInputText = string.Empty;
+
+    [ObservableProperty]
     private FileSystemItemViewModel? selectedExplorerItem;
 
     public ObservableCollection<QuickAccessItemViewModel> QuickAccessItems { get; } = [];
 
     public ObservableCollection<QuickAccessItemViewModel> SidebarFolders { get; } = [];
 
+    public ObservableCollection<BreadcrumbItemViewModel> BreadcrumbItems { get; } = [];
+
     public ObservableCollection<FileSystemItemViewModel> ExplorerItems { get; } = [];
+
+    public bool IsPathReadMode => !IsPathEditMode;
 
     public MainWindowViewModel()
     {
@@ -132,6 +143,52 @@ public partial class MainWindowViewModel : ViewModelBase
         OpenItem(SelectedExplorerItem);
     }
 
+    [RelayCommand]
+    private void BeginPathEdit()
+    {
+        PathInputText = CurrentPath;
+        IsPathEditMode = true;
+    }
+
+    [RelayCommand]
+    private void CancelPathEdit()
+    {
+        IsPathEditMode = false;
+        PathInputText = CurrentPath;
+    }
+
+    [RelayCommand]
+    private void CommitPathEdit()
+    {
+        var requestedPath = PathInputText.Trim();
+        IsPathEditMode = false;
+
+        if (string.IsNullOrWhiteSpace(requestedPath))
+        {
+            PathInputText = CurrentPath;
+            return;
+        }
+
+        if (Directory.Exists(requestedPath))
+        {
+            OpenDirectory(requestedPath);
+            return;
+        }
+
+        PathInputText = CurrentPath;
+    }
+
+    [RelayCommand]
+    private void NavigateToBreadcrumb(BreadcrumbItemViewModel? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        OpenDirectory(item.FullPath);
+    }
+
     private void OpenDirectory(string path, bool addToHistory = true)
     {
         try
@@ -149,8 +206,10 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             CurrentPath = normalizedPath;
+            PathInputText = normalizedPath;
             LoadFolderItems(normalizedPath);
             BuildSidebarFolders(normalizedPath);
+            BuildBreadcrumbs(normalizedPath);
             ApplySearchFilter();
         }
         catch
@@ -207,6 +266,46 @@ public partial class MainWindowViewModel : ViewModelBase
         catch
         {
             // Ignore inaccessible entries in the sidebar.
+        }
+    }
+
+    private void BuildBreadcrumbs(string path)
+    {
+        BreadcrumbItems.Clear();
+
+        try
+        {
+            var root = Path.GetPathRoot(path);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return;
+            }
+
+            var normalizedRoot = root.TrimEnd(Path.DirectorySeparatorChar);
+            if (string.IsNullOrWhiteSpace(normalizedRoot))
+            {
+                normalizedRoot = Path.DirectorySeparatorChar.ToString();
+            }
+
+            BreadcrumbItems.Add(new BreadcrumbItemViewModel("Macintosh HD", normalizedRoot));
+
+            var relative = path.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                ? path[root.Length..]
+                : string.Empty;
+
+            var parts = relative
+                .Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+
+            var cumulative = normalizedRoot;
+            foreach (var part in parts)
+            {
+                cumulative = Path.Combine(cumulative, part);
+                BreadcrumbItems.Add(new BreadcrumbItemViewModel(part, cumulative));
+            }
+        }
+        catch
+        {
+            // Ignore breadcrumb build failures for malformed paths.
         }
     }
 

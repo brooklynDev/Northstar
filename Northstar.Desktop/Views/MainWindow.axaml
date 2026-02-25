@@ -54,6 +54,8 @@
             <Setter Property="Padding" Value="11,7" />
             <Setter Property="MinWidth" Value="36" />
             <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
         </Style>
 
         <Style Selector="Button.nav:pointerover">
@@ -72,11 +74,35 @@
             <Setter Property="Padding" Value="10,8" />
             <Setter Property="CornerRadius" Value="9" />
             <Setter Property="Foreground" Value="#D4DDF0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
         </Style>
 
         <Style Selector="Button.sideItemButton:pointerover">
             <Setter Property="Background" Value="#202B3D" />
             <Setter Property="BorderBrush" Value="#2E3B54" />
+        </Style>
+
+        <Style Selector="Button.crumbButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Foreground" Value="#DCE6F8" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+
+        <Style Selector="Button.crumbButton:pointerover">
+            <Setter Property="Background" Value="#223048" />
+        </Style>
+
+        <Style Selector="Border.pathSurface">
+            <Setter Property="Background" Value="#0E131D" />
+            <Setter Property="BorderBrush" Value="#2A344A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="7,5" />
         </Style>
 
         <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover TextBlock.fileName">
@@ -111,7 +137,48 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Spacing="8">
-                        <TextBlock Text="{Binding CurrentPath}" Foreground="#DCE6F8" FontSize="15" TextTrimming="CharacterEllipsis" />
+                        <Border Classes="pathSurface"
+                                IsVisible="{Binding IsPathReadMode}"
+                                PointerPressed="PathSurface_OnPointerPressed">
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Disabled">
+                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                    <ItemsControl ItemsSource="{Binding BreadcrumbItems}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:BreadcrumbItemViewModel">
+                                                <StackPanel Orientation="Horizontal" Spacing="2">
+                                                    <Button Classes="crumbButton"
+                                                            Command="{Binding $parent[Window].DataContext.NavigateToBreadcrumbCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            Content="{Binding Label}" />
+                                                    <TextBlock Text="›"
+                                                               Foreground="#71839E"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <TextBox x:Name="PathEditBox"
+                                 IsVisible="{Binding IsPathEditMode}"
+                                 Text="{Binding PathInputText, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="PathEditBox_OnKeyDown"
+                                 LostFocus="PathEditBox_OnLostFocus"
+                                 Background="#0E131D"
+                                 BorderBrush="#2A344A"
+                                 BorderThickness="1"
+                                 CornerRadius="8"
+                                 Foreground="#E8F0FF"
+                                 Padding="10,7" />
+
                         <TextBox Watermark="Search this folder"
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                  Background="#0E131D"
@@ -193,6 +260,8 @@
                                  ItemsSource="{Binding ExplorerItems}"
                                  SelectedItem="{Binding SelectedExplorerItem}"
                                  DoubleTapped="ExplorerList_OnDoubleTapped"
+                                 TextInput="ExplorerList_OnTextInput"
+                                 KeyDown="ExplorerList_OnKeyDown"
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Margin="8,0,8,8">
