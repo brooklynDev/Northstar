@@ -52,6 +52,8 @@ public partial class MainWindow : Window
 
         Opened += (_, _) =>
         {
+            EnsureExplorerColumnWidthsInitialized();
+
             if (DataContext is MainWindowViewModel viewModel)
             {
                 ApplyColorTheme(viewModel.SelectedTheme);

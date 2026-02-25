@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Northstar.Desktop.ViewModels"
+        xmlns:view="using:Northstar.Desktop.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -458,7 +459,14 @@
 
                 <Border Grid.Column="1" Background="{DynamicResource ExplorerPaneBackgroundBrush}" Padding="0,8,0,0">
                     <Grid RowDefinitions="Auto,*">
-                        <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="16,0,16,8">
+                        <Grid x:Name="ExplorerHeaderGrid" Margin="16,0,16,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{Binding NameColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                <ColumnDefinition Width="{Binding TypeColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                <ColumnDefinition Width="{Binding SizeColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                <ColumnDefinition Width="{Binding ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                            </Grid.ColumnDefinitions>
+
                             <Button Classes="columnHeader"
                                     Command="{Binding SortByCommand}"
                                     CommandParameter="Name">
@@ -497,6 +505,42 @@
                                     <TextBlock Text="{Binding ModifiedSortIndicator}" />
                                 </StackPanel>
                             </Button>
+
+                            <Border Grid.Column="0"
+                                    HorizontalAlignment="Right"
+                                    Width="8"
+                                    Background="Transparent"
+                                    Cursor="SizeWestEast"
+                                    PointerPressed="ColumnResizeHandle_OnPointerPressed"
+                                    PointerMoved="ColumnResizeHandle_OnPointerMoved"
+                                    PointerReleased="ColumnResizeHandle_OnPointerReleased"
+                                    PointerCaptureLost="ColumnResizeHandle_OnPointerCaptureLost"
+                                    Tag="0"
+                                    ZIndex="10" />
+
+                            <Border Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    Width="8"
+                                    Background="Transparent"
+                                    Cursor="SizeWestEast"
+                                    PointerPressed="ColumnResizeHandle_OnPointerPressed"
+                                    PointerMoved="ColumnResizeHandle_OnPointerMoved"
+                                    PointerReleased="ColumnResizeHandle_OnPointerReleased"
+                                    PointerCaptureLost="ColumnResizeHandle_OnPointerCaptureLost"
+                                    Tag="1"
+                                    ZIndex="10" />
+
+                            <Border Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    Width="8"
+                                    Background="Transparent"
+                                    Cursor="SizeWestEast"
+                                    PointerPressed="ColumnResizeHandle_OnPointerPressed"
+                                    PointerMoved="ColumnResizeHandle_OnPointerMoved"
+                                    PointerReleased="ColumnResizeHandle_OnPointerReleased"
+                                    PointerCaptureLost="ColumnResizeHandle_OnPointerCaptureLost"
+                                    Tag="2"
+                                    ZIndex="10" />
                         </Grid>
 
                         <ListBox Grid.Row="1"
@@ -532,9 +576,14 @@
                             </ListBox.ContextMenu>
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:FileSystemItemViewModel">
-                                    <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*"
-                                          Margin="8,10"
+                                    <Grid Margin="8,10"
                                           PointerPressed="ExplorerRow_OnPointerPressed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="{Binding NameColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                            <ColumnDefinition Width="{Binding TypeColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                            <ColumnDefinition Width="{Binding SizeColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                            <ColumnDefinition Width="{Binding ModifiedColumnWidth, RelativeSource={RelativeSource AncestorType=view:MainWindow}}" />
+                                        </Grid.ColumnDefinitions>
                                         <Grid.ContextMenu>
                                             <ContextMenu Opening="ExplorerContextMenu_OnOpening">
                                                 <MenuItem Header="Open" Click="OpenItemMenu_OnClick" Tag="{Binding}" />
