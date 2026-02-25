@@ -18,25 +18,9 @@ On macOS, before first run, remove quarantine attributes:
 xattr -dr com.apple.quarantine "Northstar Explorer.app"
 ```
 
-## What It Does
+## About This App
 
-- Dark, desktop-style file browser UI
-- Quick access sidebar + folder listing
-- Breadcrumb/path bar (clickable, editable)
-- Spacebar quick preview for images/text/PDF (auto-hides when unsupported)
-- Sortable columns: Name, Type, Size, Modified
-- Explorer-style keyboard behavior:
-  - Type-to-select
-  - `Enter` to open
-  - `Backspace` to go back
-- Context menu + shortcuts (`Cmd/Ctrl + C/X/V`, `Delete`, `Cmd/Ctrl + Shift + N`)
-- Auto-refresh when files change in the current folder
-- Embedded terminal pane (toggle from footer):
-  - Uses the user's shell (`$SHELL`) as a login shell
-  - ANSI color output rendering
-  - Case-insensitive tab completion with cycling
-  - `cd` in terminal automatically syncs explorer folder
-- External terminal fallback if embedded terminal startup fails
+Northstar is a macOS-first file explorer prototype focused on Windows Explorer-style workflows, built as a fast-moving vibe-coding experiment with Codex. The goal is to explore how far this approach can go while still producing a polished, useful desktop tool: tabbed browsing, keyboard-first navigation, quick previews, built-in terminal workflows, and a themed UI that feels native on Mac.
 
 ## Requirements
 
