@@ -432,11 +432,8 @@ public partial class MainWindow : Window
 
         if (e.Key == Key.Tab)
         {
-            if (TryApplyTerminalCompletion(inputBox))
-            {
-                e.Handled = true;
-            }
-
+            _ = TryApplyTerminalCompletion(inputBox);
+            e.Handled = true;
             return;
         }
 
@@ -446,7 +443,6 @@ public partial class MainWindow : Window
             inputBox.Text = string.Empty;
             ResetTerminalCompletionCycle();
             await SendTerminalInputAsync(command + Environment.NewLine);
-            await SendTerminalInputAsync("printf '\\036%s\\037\\n' \"$PWD\"" + Environment.NewLine);
             e.Handled = true;
             return;
         }
@@ -510,6 +506,7 @@ public partial class MainWindow : Window
             _terminalReadCts = new CancellationTokenSource();
             _ = ReadTerminalStreamAsync(_embeddedTerminalProcess!.StandardOutput, _terminalReadCts.Token);
             _ = ReadTerminalStreamAsync(_embeddedTerminalProcess!.StandardError, _terminalReadCts.Token);
+            _ = ConfigureTerminalPathSyncHookAsync(shellPath);
             return true;
         }
         finally
@@ -577,6 +574,30 @@ public partial class MainWindow : Window
         }
 
         return "/bin/zsh";
+    }
+
+    private async Task ConfigureTerminalPathSyncHookAsync(string shellPath)
+    {
+        var shellName = Path.GetFileName(shellPath).ToLowerInvariant();
+        var hookCommand = shellName switch
+        {
+            "bash" => "function __ns_pwd_hook(){ printf '\\036%s\\037' \"$PWD\"; }; " +
+                      "if [[ -n \"$PROMPT_COMMAND\" ]]; then " +
+                      "PROMPT_COMMAND=\"__ns_pwd_hook;$PROMPT_COMMAND\"; " +
+                      "else PROMPT_COMMAND=\"__ns_pwd_hook\"; fi",
+            "zsh" => "function __ns_pwd_hook(){ printf '\\036%s\\037' \"$PWD\"; }; " +
+                     "typeset -ga precmd_functions; " +
+                     "if (( ${precmd_functions[(I)__ns_pwd_hook]} == 0 )); then " +
+                     "precmd_functions+=(__ns_pwd_hook); fi",
+            _ => string.Empty,
+        };
+
+        if (string.IsNullOrWhiteSpace(hookCommand))
+        {
+            return;
+        }
+
+        await SendTerminalInputAsync(hookCommand + Environment.NewLine);
     }
 
     private async Task SendTerminalInputAsync(string input)
