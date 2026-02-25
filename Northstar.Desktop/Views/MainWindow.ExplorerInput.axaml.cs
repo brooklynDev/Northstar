@@ -50,6 +50,16 @@ public partial class MainWindow
             ?? viewModel.SelectedExplorerItems.FirstOrDefault();
         viewModel.SelectedExplorerItem = primarySelection;
 
+        if (!_isApplyingRangeSelection)
+        {
+            var selectedIndex = ExplorerList.SelectedIndex;
+            if (selectedIndex >= 0)
+            {
+                _selectionAnchorIndex = selectedIndex;
+                _selectionRangeEndIndex = selectedIndex;
+            }
+        }
+
         if (_isQuickPreviewOpen)
         {
             _ = RefreshQuickPreviewAsync();
@@ -262,12 +272,73 @@ public partial class MainWindow
                 currentIndex = 0;
             }
 
+            var shiftHeld = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+            if (shiftHeld)
+            {
+                if (_selectionAnchorIndex is null)
+                {
+                    _selectionAnchorIndex = currentIndex;
+                }
+
+                var currentEndIndex = _selectionRangeEndIndex ?? currentIndex;
+                var nextEndIndex = e.Key == Key.Down
+                    ? Math.Min(currentEndIndex + 1, viewModel.ExplorerItems.Count - 1)
+                    : Math.Max(currentEndIndex - 1, 0);
+
+                ApplyRangeSelection(viewModel, listBox, _selectionAnchorIndex.Value, nextEndIndex);
+                _selectionRangeEndIndex = nextEndIndex;
+                e.Handled = true;
+                return;
+            }
+
             var nextIndex = e.Key == Key.Down
                 ? Math.Min(currentIndex + 1, viewModel.ExplorerItems.Count - 1)
                 : Math.Max(currentIndex - 1, 0);
 
+            _selectionAnchorIndex = nextIndex;
+            _selectionRangeEndIndex = nextIndex;
             SelectItemByIndex(viewModel, listBox, nextIndex);
             e.Handled = true;
+        }
+    }
+
+    private void ApplyRangeSelection(MainWindowViewModel viewModel, ListBox listBox, int anchorIndex, int endIndex)
+    {
+        if (anchorIndex < 0 || endIndex < 0 || viewModel.ExplorerItems.Count == 0)
+        {
+            return;
+        }
+
+        var start = Math.Min(anchorIndex, endIndex);
+        var finish = Math.Max(anchorIndex, endIndex);
+
+        var selectedItems = listBox.SelectedItems;
+        if (selectedItems is null)
+        {
+            return;
+        }
+
+        _isApplyingRangeSelection = true;
+        try
+        {
+            selectedItems.Clear();
+            for (var i = start; i <= finish; i++)
+            {
+                if (i >= 0 && i < viewModel.ExplorerItems.Count)
+                {
+                    selectedItems.Add(viewModel.ExplorerItems[i]);
+                }
+            }
+
+            if (endIndex >= 0 && endIndex < viewModel.ExplorerItems.Count)
+            {
+                var activeItem = viewModel.ExplorerItems[endIndex];
+                listBox.ScrollIntoView(activeItem);
+            }
+        }
+        finally
+        {
+            _isApplyingRangeSelection = false;
         }
     }
 

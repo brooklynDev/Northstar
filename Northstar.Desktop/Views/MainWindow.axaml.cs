@@ -36,6 +36,9 @@ public partial class MainWindow : Window
     private bool _isQuickPreviewOpen;
     private int _previewLoadVersion;
     private Bitmap? _previewBitmap;
+    private int? _selectionAnchorIndex;
+    private int? _selectionRangeEndIndex;
+    private bool _isApplyingRangeSelection;
 
     private readonly SemaphoreSlim _terminalStartGate = new(1, 1);
     private readonly Dictionary<ExplorerTabViewModel, TerminalTabSession> _terminalSessions = new();
