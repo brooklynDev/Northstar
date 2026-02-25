@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Northstar.Desktop.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Northstar.Desktop.Views;
@@ -366,6 +367,44 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ExplorerContextMenu_OnOpening(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (sender is not ContextMenu contextMenu || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (contextMenu.PlacementTarget is Control placementTarget &&
+            placementTarget.DataContext is FileSystemItemViewModel item)
+        {
+            viewModel.SelectedExplorerItem = item;
+            ExplorerList.SelectedItem = item;
+        }
+
+        var hasSelection = viewModel.SelectedExplorerItem is not null;
+        var canPaste = viewModel.PasteCommand.CanExecute(null);
+
+        foreach (var menuItem in EnumerateMenuItems(contextMenu.Items))
+        {
+            var header = menuItem.Header?.ToString();
+            if (string.IsNullOrWhiteSpace(header))
+            {
+                continue;
+            }
+
+            if (header is "Open" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
+            {
+                menuItem.IsEnabled = hasSelection;
+                continue;
+            }
+
+            if (header == "Paste")
+            {
+                menuItem.IsEnabled = canPaste;
+            }
+        }
+    }
+
     private void OpenItemMenu_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)
@@ -447,5 +486,21 @@ public partial class MainWindow : Window
         }
 
         viewModel.RefreshCommand.Execute(null);
+    }
+
+    private static IEnumerable<MenuItem> EnumerateMenuItems(object? items)
+    {
+        if (items is not IEnumerable<object> enumerable)
+        {
+            yield break;
+        }
+
+        foreach (var obj in enumerable)
+        {
+            if (obj is MenuItem menuItem)
+            {
+                yield return menuItem;
+            }
+        }
     }
 }
