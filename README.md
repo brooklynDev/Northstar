@@ -10,6 +10,12 @@ Download prebuilt macOS app bundles from GitHub Releases:
 
 - https://github.com/brooklynDev/Northstar/releases
 
+On macOS, before first run, remove quarantine attributes:
+
+```bash
+xattr -dr com.apple.quarantine "Northstar Explorer.app"
+```
+
 ## What It Does
 
 - Dark, desktop-style file browser UI
@@ -53,9 +59,3 @@ Artifacts are written to:
 - `artifacts/osx-x64/Northstar Explorer.zip`
 
 Each zip unpacks to a single `.app` bundle.
-
-On macOS, before first run, remove quarantine attributes:
-
-```bash
-xattr -dr com.apple.quarantine "Northstar Explorer.app"
-```

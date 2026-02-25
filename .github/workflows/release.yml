@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - "v*"
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
 
 permissions:
@@ -31,12 +26,16 @@ jobs:
       - name: Build publish artifacts
         run: make publish
 
-      - name: Publish Rolling Release
-        if: github.ref == 'refs/heads/master'
+      - name: Prepare release asset names
+        run: |
+          cp "artifacts/osx-arm64/Northstar Explorer.zip" "artifacts/osx-arm64/Northstar-Explorer-osx-arm64.zip"
+          cp "artifacts/osx-x64/Northstar Explorer.zip" "artifacts/osx-x64/Northstar-Explorer-osx-x64.zip"
+
+      - name: Publish Latest Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly
-          name: Northstar Nightly
+          tag_name: latest
+          name: Northstar Latest
           prerelease: true
           make_latest: false
           target_commitish: master
@@ -44,15 +43,5 @@ jobs:
           fail_on_unmatched_files: true
           overwrite_files: true
           files: |
-            artifacts/osx-arm64/Northstar Explorer.zip
-            artifacts/osx-x64/Northstar Explorer.zip
-
-      - name: Publish Versioned Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          fail_on_unmatched_files: true
-          overwrite_files: true
-          files: |
-            artifacts/osx-arm64/Northstar Explorer.zip
-            artifacts/osx-x64/Northstar Explorer.zip
+            artifacts/osx-arm64/Northstar-Explorer-osx-arm64.zip
+            artifacts/osx-x64/Northstar-Explorer-osx-x64.zip
