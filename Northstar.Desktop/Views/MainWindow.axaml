@@ -334,6 +334,8 @@
                                 <ContextMenu Opening="ExplorerContextMenu_OnOpening">
                                     <MenuItem Header="Open" Click="OpenItemMenu_OnClick" />
                                     <Separator />
+                                    <MenuItem Header="Rename" Click="RenameItemMenu_OnClick" />
+                                    <Separator />
                                     <MenuItem Header="Copy" Click="CopyItemMenu_OnClick" />
                                     <MenuItem Header="Cut" Click="CutItemMenu_OnClick" />
                                     <MenuItem Header="Paste" Click="PasteMenu_OnClick" />
@@ -353,6 +355,8 @@
                                         <Grid.ContextMenu>
                                             <ContextMenu Opening="ExplorerContextMenu_OnOpening">
                                                 <MenuItem Header="Open" Click="OpenItemMenu_OnClick" Tag="{Binding}" />
+                                                <Separator />
+                                                <MenuItem Header="Rename" Click="RenameItemMenu_OnClick" Tag="{Binding}" />
                                                 <Separator />
                                                 <MenuItem Header="Copy" Click="CopyItemMenu_OnClick" Tag="{Binding}" />
                                                 <MenuItem Header="Cut" Click="CutItemMenu_OnClick" Tag="{Binding}" />

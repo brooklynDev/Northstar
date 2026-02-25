@@ -310,9 +310,14 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void NewFolder()
     {
+        CreateNewFolderAndSelect();
+    }
+
+    public FileSystemItemViewModel? CreateNewFolderAndSelect()
+    {
         if (!Directory.Exists(CurrentPath))
         {
-            return;
+            return null;
         }
 
         try
@@ -320,10 +325,21 @@ public partial class MainWindowViewModel : ViewModelBase
             var folderPath = GetUniqueDestinationPath(Path.Combine(CurrentPath, "New Folder"));
             Directory.CreateDirectory(folderPath);
             OpenDirectory(CurrentPath, addToHistory: false);
+
+            var createdItem = ExplorerItems.FirstOrDefault(item =>
+                string.Equals(item.FullPath, folderPath, StringComparison.OrdinalIgnoreCase));
+
+            if (createdItem is not null)
+            {
+                SelectedExplorerItem = createdItem;
+            }
+
+            return createdItem;
         }
         catch
         {
             // Ignore new-folder errors in this basic version.
+            return null;
         }
     }
 
@@ -357,6 +373,64 @@ public partial class MainWindowViewModel : ViewModelBase
         catch
         {
             // Ignore clipboard errors in this basic version.
+        }
+    }
+
+    public bool TryRenameItem(FileSystemItemViewModel? item, string? newName)
+    {
+        var target = item ?? SelectedExplorerItem;
+        if (target is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return false;
+        }
+
+        var trimmedName = newName.Trim();
+        if (string.Equals(trimmedName, target.Name, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (trimmedName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            return false;
+        }
+
+        var parentDirectory = Path.GetDirectoryName(target.FullPath);
+        if (string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            return false;
+        }
+
+        var destinationPath = Path.Combine(parentDirectory, trimmedName);
+        if (File.Exists(destinationPath) || Directory.Exists(destinationPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            if (target.IsDirectory)
+            {
+                Directory.Move(target.FullPath, destinationPath);
+            }
+            else
+            {
+                File.Move(target.FullPath, destinationPath);
+            }
+
+            OpenDirectory(CurrentPath, addToHistory: false);
+            SelectedExplorerItem = ExplorerItems.FirstOrDefault(i =>
+                string.Equals(i.FullPath, destinationPath, StringComparison.OrdinalIgnoreCase));
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

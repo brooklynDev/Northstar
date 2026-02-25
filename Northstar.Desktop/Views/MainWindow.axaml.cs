@@ -1,11 +1,14 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Threading;
+using Avalonia;
 using Northstar.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Northstar.Desktop.Views;
 
@@ -109,7 +112,7 @@ public partial class MainWindow : Window
 
                 if (hasPrimaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.N)
                 {
-                    viewModel.NewFolderCommand.Execute(null);
+                    _ = CreateNewFolderAndRenameAsync(viewModel);
                     e.Handled = true;
                     return;
                 }
@@ -117,6 +120,13 @@ public partial class MainWindow : Window
                 if (e.Key is Key.Delete)
                 {
                     viewModel.DeleteItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    e.Handled = true;
+                    return;
+                }
+
+                if (e.Key == Key.F2)
+                {
+                    _ = RenameSelectedAsync(viewModel.SelectedExplorerItem);
                     e.Handled = true;
                     return;
                 }
@@ -392,7 +402,7 @@ public partial class MainWindow : Window
                 continue;
             }
 
-            if (header is "Open" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
+            if (header is "Open" or "Rename" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
             {
                 menuItem.IsEnabled = hasSelection;
                 continue;
@@ -413,6 +423,16 @@ public partial class MainWindow : Window
         }
 
         viewModel.OpenItemCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private async void RenameItemMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        await RenameSelectedAsync((sender as MenuItem)?.Tag as FileSystemItemViewModel);
     }
 
     private void CopyItemMenu_OnClick(object? sender, RoutedEventArgs e)
@@ -468,14 +488,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private void NewFolderMenu_OnClick(object? sender, RoutedEventArgs e)
+    private async void NewFolderMenu_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
 
-        viewModel.NewFolderCommand.Execute(null);
+        await CreateNewFolderAndRenameAsync(viewModel);
     }
 
     private void RefreshMenu_OnClick(object? sender, RoutedEventArgs e)
@@ -502,5 +522,132 @@ public partial class MainWindow : Window
                 yield return menuItem;
             }
         }
+    }
+
+    private async Task CreateNewFolderAndRenameAsync(MainWindowViewModel viewModel)
+    {
+        var createdItem = viewModel.CreateNewFolderAndSelect();
+        if (createdItem is null)
+        {
+            return;
+        }
+
+        await RenameSelectedAsync(createdItem);
+    }
+
+    private async Task RenameSelectedAsync(FileSystemItemViewModel? item)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        var target = item ?? viewModel.SelectedExplorerItem;
+        if (target is null)
+        {
+            return;
+        }
+
+        var proposedName = await ShowRenameDialogAsync(target.Name);
+        if (string.IsNullOrWhiteSpace(proposedName))
+        {
+            return;
+        }
+
+        _ = viewModel.TryRenameItem(target, proposedName);
+    }
+
+    private async Task<string?> ShowRenameDialogAsync(string currentName)
+    {
+        var dialog = new Window
+        {
+            Title = "Rename",
+            Width = 440,
+            Height = 150,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ExtendClientAreaToDecorationsHint = false,
+        };
+
+        string? result = null;
+        var textBox = new TextBox
+        {
+            Text = currentName,
+            Margin = new Thickness(0, 0, 0, 12),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        var cancelButton = new Button
+        {
+            Content = "Cancel",
+            MinWidth = 80,
+            Margin = new Thickness(0, 0, 8, 0),
+        };
+        cancelButton.Click += (_, _) => dialog.Close();
+
+        var renameButton = new Button
+        {
+            Content = "Rename",
+            MinWidth = 80,
+        };
+        renameButton.Click += (_, _) =>
+        {
+            result = textBox.Text?.Trim();
+            dialog.Close();
+        };
+
+        textBox.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Enter)
+            {
+                result = textBox.Text?.Trim();
+                dialog.Close();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                dialog.Close();
+                e.Handled = true;
+            }
+        };
+
+        dialog.Content = new Border
+        {
+            Padding = new Thickness(14),
+            Child = new StackPanel
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "Enter a new name:",
+                    },
+                    textBox,
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children =
+                        {
+                            cancelButton,
+                            renameButton,
+                        },
+                    },
+                },
+            },
+        };
+
+        dialog.Opened += (_, _) =>
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                textBox.Focus();
+                textBox.SelectAll();
+            });
+        };
+
+        await dialog.ShowDialog(this);
+        return result;
     }
 }
