@@ -5,6 +5,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Northstar.Desktop.Services;
@@ -17,6 +20,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly Stack<string> _forwardHistory = new();
     private readonly MacFileIconProvider _iconProvider = new();
     private readonly List<string> _clipboardPaths = [];
+    private readonly object _watcherSync = new();
+    private FileSystemWatcher? _directoryWatcher;
+    private CancellationTokenSource? _watcherRefreshDebounceCts;
     private bool _clipboardIsCut;
     private List<FileSystemItemViewModel> _allItems = [];
 
@@ -443,6 +449,7 @@ public partial class MainWindowViewModel : ViewModelBase
             BuildSidebarFolders(normalizedPath);
             BuildBreadcrumbs(normalizedPath);
             ApplySearchFilter();
+            ConfigureDirectoryWatcher(normalizedPath);
         }
         catch
         {
@@ -683,6 +690,114 @@ public partial class MainWindowViewModel : ViewModelBase
         candidates.Add("WezTerm");
 
         return candidates.Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public void Shutdown()
+    {
+        lock (_watcherSync)
+        {
+            _watcherRefreshDebounceCts?.Cancel();
+            _watcherRefreshDebounceCts?.Dispose();
+            _watcherRefreshDebounceCts = null;
+
+            if (_directoryWatcher is not null)
+            {
+                _directoryWatcher.EnableRaisingEvents = false;
+                _directoryWatcher.Created -= DirectoryWatcher_OnChanged;
+                _directoryWatcher.Changed -= DirectoryWatcher_OnChanged;
+                _directoryWatcher.Deleted -= DirectoryWatcher_OnChanged;
+                _directoryWatcher.Renamed -= DirectoryWatcher_OnRenamed;
+                _directoryWatcher.Error -= DirectoryWatcher_OnError;
+                _directoryWatcher.Dispose();
+                _directoryWatcher = null;
+            }
+        }
+    }
+
+    private void ConfigureDirectoryWatcher(string path)
+    {
+        lock (_watcherSync)
+        {
+            if (_directoryWatcher is not null)
+            {
+                _directoryWatcher.EnableRaisingEvents = false;
+                _directoryWatcher.Created -= DirectoryWatcher_OnChanged;
+                _directoryWatcher.Changed -= DirectoryWatcher_OnChanged;
+                _directoryWatcher.Deleted -= DirectoryWatcher_OnChanged;
+                _directoryWatcher.Renamed -= DirectoryWatcher_OnRenamed;
+                _directoryWatcher.Error -= DirectoryWatcher_OnError;
+                _directoryWatcher.Dispose();
+                _directoryWatcher = null;
+            }
+
+            try
+            {
+                var watcher = new FileSystemWatcher(path)
+                {
+                    IncludeSubdirectories = false,
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
+                    EnableRaisingEvents = false,
+                };
+
+                watcher.Created += DirectoryWatcher_OnChanged;
+                watcher.Changed += DirectoryWatcher_OnChanged;
+                watcher.Deleted += DirectoryWatcher_OnChanged;
+                watcher.Renamed += DirectoryWatcher_OnRenamed;
+                watcher.Error += DirectoryWatcher_OnError;
+                watcher.EnableRaisingEvents = true;
+
+                _directoryWatcher = watcher;
+            }
+            catch
+            {
+                // Ignore watcher setup errors for unsupported/inaccessible paths.
+            }
+        }
+    }
+
+    private void DirectoryWatcher_OnChanged(object sender, FileSystemEventArgs e)
+    {
+        QueueDebouncedRefresh();
+    }
+
+    private void DirectoryWatcher_OnRenamed(object sender, RenamedEventArgs e)
+    {
+        QueueDebouncedRefresh();
+    }
+
+    private void DirectoryWatcher_OnError(object sender, ErrorEventArgs e)
+    {
+        QueueDebouncedRefresh();
+    }
+
+    private void QueueDebouncedRefresh()
+    {
+        CancellationTokenSource debounceCts;
+
+        lock (_watcherSync)
+        {
+            _watcherRefreshDebounceCts?.Cancel();
+            _watcherRefreshDebounceCts?.Dispose();
+            _watcherRefreshDebounceCts = new CancellationTokenSource();
+            debounceCts = _watcherRefreshDebounceCts;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(220, debounceCts.Token);
+                await Dispatcher.UIThread.InvokeAsync(() => OpenDirectory(CurrentPath, addToHistory: false));
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when newer filesystem events arrive quickly.
+            }
+            catch
+            {
+                // Ignore watcher refresh errors in this basic version.
+            }
+        });
     }
 
     private static void CopyEntry(string sourcePath, string destinationPath)

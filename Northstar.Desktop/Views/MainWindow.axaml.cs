@@ -19,6 +19,13 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         Opened += (_, _) => ExplorerList.Focus();
+        Closing += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                viewModel.Shutdown();
+            }
+        };
 
         AddHandler(KeyDownEvent, Window_OnPreviewKeyDown, RoutingStrategies.Tunnel);
         AddHandler(TextInputEvent, Window_OnPreviewTextInput, RoutingStrategies.Tunnel);
