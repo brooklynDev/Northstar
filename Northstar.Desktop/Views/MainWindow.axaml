@@ -134,6 +134,24 @@
             <Setter Property="Background" Value="#233149" />
         </Style>
 
+        <Style Selector="Border.previewPane">
+            <Setter Property="Background" Value="#0D1522" />
+            <Setter Property="BorderBrush" Value="#2A344A" />
+            <Setter Property="BorderThickness" Value="1,0,0,0" />
+            <Setter Property="Padding" Value="14,12" />
+        </Style>
+
+        <Style Selector="TextBox.previewText">
+            <Setter Property="Background" Value="#0A111C" />
+            <Setter Property="BorderBrush" Value="#2A344A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Foreground" Value="#D6E4FA" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
         <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover TextBlock.fileName">
             <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
@@ -231,7 +249,7 @@
                 </Grid>
             </Border>
 
-            <Grid Grid.Row="1" ColumnDefinitions="290,*">
+            <Grid Grid.Row="1" x:Name="MainContentGrid" ColumnDefinitions="290,*,360">
                 <Border Background="#161E2D" BorderBrush="#29334A" BorderThickness="0,0,1,0" Padding="14,12">
                     <ScrollViewer>
                         <StackPanel Spacing="16">
@@ -327,6 +345,7 @@
                                  x:Name="ExplorerList"
                                  ItemsSource="{Binding ExplorerItems}"
                                  SelectedItem="{Binding SelectedExplorerItem}"
+                                 SelectionChanged="ExplorerList_OnSelectionChanged"
                                  DoubleTapped="ExplorerList_OnDoubleTapped"
                                  TextInput="ExplorerList_OnTextInput"
                                  KeyDown="ExplorerList_OnKeyDown"
@@ -391,6 +410,51 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" x:Name="PreviewPane" Classes="previewPane" IsVisible="False">
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <TextBlock x:Name="PreviewTitle"
+                                   Text="Quick Preview"
+                                   Foreground="#E5EEFF"
+                                   FontSize="16"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Grid.Row="1"
+                                   x:Name="PreviewMeta"
+                                   Margin="0,4,0,10"
+                                   Foreground="#8FA2BF"
+                                   FontSize="12"
+                                   Text="Press Space to toggle preview." />
+
+                        <Grid Grid.Row="2">
+                            <Border x:Name="PreviewMessageSurface"
+                                    CornerRadius="10"
+                                    Background="#0A111C"
+                                    BorderBrush="#2A344A"
+                                    BorderThickness="1">
+                                <TextBlock x:Name="PreviewMessageText"
+                                           Margin="14"
+                                           Text="Select a file and press Space."
+                                           Foreground="#9EB1CC"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <Image x:Name="PreviewImage"
+                                   IsVisible="False"
+                                   Stretch="Uniform" />
+
+                            <TextBox x:Name="PreviewTextBox"
+                                     Classes="previewText"
+                                     IsVisible="False"
+                                     Focusable="False"
+                                     IsTabStop="False"
+                                     VerticalContentAlignment="Top"
+                                     HorizontalContentAlignment="Stretch"
+                                     Margin="0"
+                                     Padding="10" />
+                        </Grid>
                     </Grid>
                 </Border>
             </Grid>
