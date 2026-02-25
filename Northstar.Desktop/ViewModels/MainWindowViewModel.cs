@@ -19,6 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private FileSystemWatcher? _directoryWatcher;
     private CancellationTokenSource? _watcherRefreshDebounceCts;
     private bool _clipboardIsCut;
+    private bool _isSwitchingTabs;
     private List<FileSystemItemViewModel> _allItems = [];
 
     [ObservableProperty]
@@ -50,6 +51,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string selectedTheme = "Midnight";
 
     [ObservableProperty]
+    private ExplorerTabViewModel? selectedTab;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NameSortIndicator))]
     [NotifyPropertyChangedFor(nameof(TypeSortIndicator))]
     [NotifyPropertyChangedFor(nameof(SizeSortIndicator))]
@@ -72,6 +76,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<FileSystemItemViewModel> ExplorerItems { get; } = [];
 
     public ObservableCollection<FileSystemItemViewModel> SelectedExplorerItems { get; } = [];
+
+    public ObservableCollection<ExplorerTabViewModel> Tabs { get; } = [];
 
     public IReadOnlyList<string> AvailableThemes { get; } =
     [
@@ -105,6 +111,12 @@ public partial class MainWindowViewModel : ViewModelBase
         var startPath = !string.IsNullOrWhiteSpace(DefaultStartFolder) && Directory.Exists(DefaultStartFolder)
             ? DefaultStartFolder
             : home;
+
+        var initialPath = Path.GetFullPath(startPath);
+        var initialTab = new ExplorerTabViewModel(BuildTabTitle(initialPath), initialPath);
+        Tabs.Add(initialTab);
+        SelectedTab = initialTab;
+
         OpenDirectory(startPath, addToHistory: false);
     }
 
@@ -129,5 +141,30 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         SaveSettings();
+    }
+
+    partial void OnSelectedTabChanged(ExplorerTabViewModel? value)
+    {
+        if (value is null || string.IsNullOrWhiteSpace(value.Path))
+        {
+            return;
+        }
+
+        if (string.Equals(CurrentPath, value.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _isSwitchingTabs = true;
+        try
+        {
+            _backHistory.Clear();
+            _forwardHistory.Clear();
+            OpenDirectory(value.Path, addToHistory: false);
+        }
+        finally
+        {
+            _isSwitchingTabs = false;
+        }
     }
 }

@@ -104,7 +104,7 @@ public partial class MainWindow
                 continue;
             }
 
-            if (header is "Open" or "Rename" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
+            if (header is "Open" or "Open in New Tab" or "Rename" or "Copy" or "Cut" or "Copy Path" or "Move to Trash")
             {
                 menuItem.IsEnabled = hasSelection;
                 continue;
@@ -125,6 +125,16 @@ public partial class MainWindow
         }
 
         viewModel.OpenItemCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private void OpenInNewTabMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.OpenItemInNewTabCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
     }
 
     private async void RenameItemMenu_OnClick(object? sender, RoutedEventArgs e)
@@ -208,6 +218,26 @@ public partial class MainWindow
         }
 
         viewModel.RefreshCommand.Execute(null);
+    }
+
+    private void NewTabButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.NewTabCommand.Execute(null);
+    }
+
+    private void CloseTabButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.CloseTabCommand.Execute((sender as Button)?.Tag as ExplorerTabViewModel);
     }
 
     private static IEnumerable<MenuItem> EnumerateMenuItems(object? items)

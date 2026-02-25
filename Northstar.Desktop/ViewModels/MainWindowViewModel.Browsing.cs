@@ -32,6 +32,12 @@ public partial class MainWindowViewModel
             BuildBreadcrumbs(normalizedPath);
             ApplySearchFilter();
             ConfigureDirectoryWatcher(normalizedPath);
+
+            if (!_isSwitchingTabs && SelectedTab is not null)
+            {
+                SelectedTab.Path = normalizedPath;
+                SelectedTab.Title = BuildTabTitle(normalizedPath);
+            }
         }
         catch
         {
@@ -239,6 +245,24 @@ public partial class MainWindowViewModel
         }
 
         return SortAscending ? "▲" : "▼";
+    }
+
+    private static string BuildTabTitle(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "Tab";
+        }
+
+        var normalizedPath = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(normalizedPath);
+        if (string.Equals(root, normalizedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return "Macintosh HD";
+        }
+
+        var fileName = Path.GetFileName(normalizedPath.TrimEnd(Path.DirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(fileName) ? normalizedPath : fileName;
     }
 
     private static void TryLaunchFile(string fullPath)

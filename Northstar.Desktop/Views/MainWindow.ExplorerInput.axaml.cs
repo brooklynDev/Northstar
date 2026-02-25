@@ -88,6 +88,20 @@ public partial class MainWindow
                 return;
             }
 
+            if (hasPrimaryModifier && e.Key == Key.T)
+            {
+                viewModel.NewTabCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
+            if (hasPrimaryModifier && e.Key == Key.W)
+            {
+                viewModel.CloseTabCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
             if (ShouldRouteToExplorer(e.Source))
             {
                 if (hasPrimaryModifier && e.Key == Key.C)

@@ -21,57 +21,66 @@ public partial class MainWindow
 {
     private async void OpenTerminalButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel viewModel)
+        if (DataContext is not MainWindowViewModel viewModel || viewModel.SelectedTab is null)
         {
             return;
         }
 
-        if (EmbeddedTerminalPane.IsVisible)
+        var session = GetOrCreateTerminalSession(viewModel.SelectedTab);
+        _activeTerminalSession = session;
+
+        if (session.IsVisible)
         {
-            SetEmbeddedTerminalVisible(false);
+            SetEmbeddedTerminalVisible(false, session);
             ExplorerList.Focus();
             return;
         }
 
-        var started = await EnsureEmbeddedTerminalStartedAsync(viewModel);
+        var started = await EnsureEmbeddedTerminalStartedAsync(viewModel, session);
         if (!started)
         {
             viewModel.OpenInTerminalCommand.Execute(null);
             return;
         }
 
-        SetEmbeddedTerminalVisible(true);
+        RenderTerminalSession(session);
+        SetEmbeddedTerminalVisible(true, session);
         Dispatcher.UIThread.Post(() => TerminalInputBox.Focus());
     }
 
     private void TerminalCloseButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        SetEmbeddedTerminalVisible(false);
+        if (_activeTerminalSession is null)
+        {
+            return;
+        }
+
+        SetEmbeddedTerminalVisible(false, _activeTerminalSession);
         ExplorerList.Focus();
     }
 
     private void TerminalClearButton_OnClick(object? sender, RoutedEventArgs e)
     {
-        _ansiPendingBuffer.Clear();
-        _terminalOutputCharCount = 0;
-        _terminalCurrentAnsiColor = -1;
-        _terminalAnsiBold = false;
-        TerminalOutputText.Inlines?.Clear();
-        TerminalOutputText.Text = string.Empty;
-        ResetTerminalCompletionCycle();
+        if (_activeTerminalSession is null)
+        {
+            return;
+        }
+
+        ClearTerminalSession(_activeTerminalSession);
+        RenderTerminalSession(_activeTerminalSession);
         TerminalInputBox.Focus();
     }
 
     private async void TerminalInputBox_OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is not TextBox inputBox)
+        if (sender is not TextBox inputBox || _activeTerminalSession is null)
         {
             return;
         }
 
         if (e.Key == Key.Tab)
         {
-            _ = TryApplyTerminalCompletion(inputBox);
+            _ = TryApplyTerminalCompletion(_activeTerminalSession, inputBox);
             e.Handled = true;
             return;
         }
@@ -80,33 +89,39 @@ public partial class MainWindow
         {
             var command = inputBox.Text ?? string.Empty;
             inputBox.Text = string.Empty;
-            ResetTerminalCompletionCycle();
-            await SendTerminalInputAsync(command + Environment.NewLine);
+            ResetTerminalCompletionCycle(_activeTerminalSession);
+            await SendTerminalInputAsync(_activeTerminalSession, command + Environment.NewLine);
             e.Handled = true;
             return;
         }
 
         if ((e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) && e.Key == Key.C)
         {
-            ResetTerminalCompletionCycle();
-            await SendTerminalInputAsync("\u0003");
+            ResetTerminalCompletionCycle(_activeTerminalSession);
+            await SendTerminalInputAsync(_activeTerminalSession, "\u0003");
             e.Handled = true;
             return;
         }
 
         if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End))
         {
-            ResetTerminalCompletionCycle();
+            ResetTerminalCompletionCycle(_activeTerminalSession);
         }
     }
 
-    private void SetEmbeddedTerminalVisible(bool isVisible)
+    private void SetEmbeddedTerminalVisible(bool isVisible, TerminalTabSession? session = null)
     {
+        var targetSession = session ?? _activeTerminalSession;
+        if (targetSession is not null)
+        {
+            targetSession.IsVisible = isVisible;
+        }
+
         EmbeddedTerminalPane.IsVisible = isVisible;
 
-        if (RootLayoutGrid.RowDefinitions.Count > 3)
+        if (RootLayoutGrid.RowDefinitions.Count > 4)
         {
-            RootLayoutGrid.RowDefinitions[3].Height = isVisible
+            RootLayoutGrid.RowDefinitions[4].Height = isVisible
                 ? new GridLength(280)
                 : new GridLength(0);
         }
@@ -114,9 +129,27 @@ public partial class MainWindow
         TerminalToggleButton.Content = isVisible ? "⌨ Hide Terminal" : "⌨ Open Terminal";
     }
 
-    private async Task<bool> EnsureEmbeddedTerminalStartedAsync(MainWindowViewModel viewModel)
+    private void SwitchTerminalSessionForSelectedTab()
     {
-        if (_embeddedTerminalProcess is { HasExited: false })
+        if (DataContext is not MainWindowViewModel viewModel || viewModel.SelectedTab is null)
+        {
+            _activeTerminalSession = null;
+            TerminalOutputText.Inlines?.Clear();
+            TerminalOutputText.Text = string.Empty;
+            TerminalShellLabel.Text = string.Empty;
+            SetEmbeddedTerminalVisible(false);
+            return;
+        }
+
+        var session = GetOrCreateTerminalSession(viewModel.SelectedTab);
+        _activeTerminalSession = session;
+        RenderTerminalSession(session);
+        SetEmbeddedTerminalVisible(session.IsVisible, session);
+    }
+
+    private async Task<bool> EnsureEmbeddedTerminalStartedAsync(MainWindowViewModel viewModel, TerminalTabSession session)
+    {
+        if (session.Process is { HasExited: false })
         {
             return true;
         }
@@ -124,28 +157,36 @@ public partial class MainWindow
         await _terminalStartGate.WaitAsync();
         try
         {
-            if (_embeddedTerminalProcess is { HasExited: false })
+            if (session.Process is { HasExited: false })
             {
                 return true;
             }
 
-            ShutdownEmbeddedTerminal();
+            ShutdownEmbeddedTerminal(session);
 
             var shellPath = ResolveUserShellPath();
-            TerminalShellLabel.Text = $"shell: {Path.GetFileName(shellPath)}";
-            AppendTerminalOutput($"Starting shell in {viewModel.CurrentPath}{Environment.NewLine}");
+            session.ShellPath = shellPath;
 
-            if (!TryStartTerminalProcess(shellPath, viewModel.CurrentPath, usePtyWrapper: true) &&
-                !TryStartTerminalProcess(shellPath, viewModel.CurrentPath, usePtyWrapper: false))
+            var workingDirectory = session.Tab.Path;
+            if (string.IsNullOrWhiteSpace(workingDirectory) || !Directory.Exists(workingDirectory))
             {
-                AppendTerminalOutput($"Failed to start embedded shell ({shellPath}).{Environment.NewLine}");
+                workingDirectory = viewModel.CurrentPath;
+            }
+
+            AppendTerminalOutput(session, $"Starting shell in {workingDirectory}{Environment.NewLine}");
+
+            if (!TryStartTerminalProcess(shellPath, workingDirectory, usePtyWrapper: true, out var process) &&
+                !TryStartTerminalProcess(shellPath, workingDirectory, usePtyWrapper: false, out process))
+            {
+                AppendTerminalOutput(session, $"Failed to start embedded shell ({shellPath}).{Environment.NewLine}");
                 return false;
             }
 
-            _terminalReadCts = new CancellationTokenSource();
-            _ = ReadTerminalStreamAsync(_embeddedTerminalProcess!.StandardOutput, _terminalReadCts.Token);
-            _ = ReadTerminalStreamAsync(_embeddedTerminalProcess!.StandardError, _terminalReadCts.Token);
-            _ = ConfigureTerminalPathSyncHookAsync(shellPath);
+            session.Process = process;
+            session.ReadCts = new CancellationTokenSource();
+            _ = ReadTerminalStreamAsync(session, process!.StandardOutput, session.ReadCts.Token);
+            _ = ReadTerminalStreamAsync(session, process.StandardError, session.ReadCts.Token);
+            _ = ConfigureTerminalPathSyncHookAsync(session, shellPath);
             return true;
         }
         finally
@@ -154,8 +195,10 @@ public partial class MainWindow
         }
     }
 
-    private bool TryStartTerminalProcess(string shellPath, string workingDirectory, bool usePtyWrapper)
+    private bool TryStartTerminalProcess(string shellPath, string workingDirectory, bool usePtyWrapper, out Process? process)
     {
+        process = null;
+
         try
         {
             var startInfo = new ProcessStartInfo
@@ -184,14 +227,8 @@ public partial class MainWindow
                 startInfo.ArgumentList.Add("-l");
             }
 
-            var process = Process.Start(startInfo);
-            if (process is null)
-            {
-                return false;
-            }
-
-            _embeddedTerminalProcess = process;
-            return true;
+            process = Process.Start(startInfo);
+            return process is not null;
         }
         catch
         {
@@ -215,7 +252,7 @@ public partial class MainWindow
         return "/bin/zsh";
     }
 
-    private async Task ConfigureTerminalPathSyncHookAsync(string shellPath)
+    private async Task ConfigureTerminalPathSyncHookAsync(TerminalTabSession session, string shellPath)
     {
         var shellName = Path.GetFileName(shellPath).ToLowerInvariant();
         var hookCommand = shellName switch
@@ -236,28 +273,28 @@ public partial class MainWindow
             return;
         }
 
-        await SendTerminalInputAsync(hookCommand + Environment.NewLine);
+        await SendTerminalInputAsync(session, hookCommand + Environment.NewLine);
     }
 
-    private async Task SendTerminalInputAsync(string input)
+    private async Task SendTerminalInputAsync(TerminalTabSession session, string input)
     {
         try
         {
-            if (_embeddedTerminalProcess is null || _embeddedTerminalProcess.HasExited)
+            if (session.Process is null || session.Process.HasExited)
             {
                 return;
             }
 
-            await _embeddedTerminalProcess.StandardInput.WriteAsync(input);
-            await _embeddedTerminalProcess.StandardInput.FlushAsync();
+            await session.Process.StandardInput.WriteAsync(input);
+            await session.Process.StandardInput.FlushAsync();
         }
         catch
         {
-            AppendTerminalOutput($"{Environment.NewLine}[terminal input failed]{Environment.NewLine}");
+            AppendTerminalOutput(session, $"{Environment.NewLine}[terminal input failed]{Environment.NewLine}");
         }
     }
 
-    private bool TryApplyTerminalCompletion(TextBox inputBox)
+    private bool TryApplyTerminalCompletion(TerminalTabSession session, TextBox inputBox)
     {
         var text = inputBox.Text ?? string.Empty;
         var caret = Math.Clamp(inputBox.CaretIndex, 0, text.Length);
@@ -273,12 +310,13 @@ public partial class MainWindow
             return false;
         }
 
-        if (DataContext is not MainWindowViewModel viewModel)
+        var currentDirectory = session.Tab.Path;
+        if (string.IsNullOrWhiteSpace(currentDirectory) || !Directory.Exists(currentDirectory))
         {
-            return false;
+            currentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         }
 
-        var (lookupDirectory, pathPrefix, namePrefix) = ResolveCompletionContext(token, viewModel.CurrentPath);
+        var (lookupDirectory, pathPrefix, namePrefix) = ResolveCompletionContext(token, currentDirectory);
         if (string.IsNullOrWhiteSpace(lookupDirectory) || !Directory.Exists(lookupDirectory))
         {
             return false;
@@ -301,20 +339,20 @@ public partial class MainWindow
         }
 
         var contextKey = $"{lookupDirectory}\n{pathPrefix}\n{namePrefix}\n{text[..tokenStart]}\n{text[caret..]}";
-        if (!string.Equals(contextKey, _terminalCompletionContextKey, StringComparison.Ordinal))
+        if (!string.Equals(contextKey, session.CompletionContextKey, StringComparison.Ordinal))
         {
-            _terminalCompletionMatches.Clear();
-            _terminalCompletionMatches.AddRange(matches.Select(entry =>
+            session.CompletionMatches.Clear();
+            session.CompletionMatches.AddRange(matches.Select(entry =>
                 pathPrefix + entry.Name + (entry.IsDirectory ? "/" : string.Empty)));
-            _terminalCompletionContextKey = contextKey;
-            _terminalCompletionIndex = 0;
+            session.CompletionContextKey = contextKey;
+            session.CompletionIndex = 0;
         }
         else
         {
-            _terminalCompletionIndex = (_terminalCompletionIndex + 1) % _terminalCompletionMatches.Count;
+            session.CompletionIndex = (session.CompletionIndex + 1) % session.CompletionMatches.Count;
         }
 
-        var replacement = _terminalCompletionMatches[_terminalCompletionIndex];
+        var replacement = session.CompletionMatches[session.CompletionIndex];
         var updatedText = text[..tokenStart] + replacement + text[caret..];
         inputBox.Text = updatedText;
         inputBox.CaretIndex = tokenStart + replacement.Length;
@@ -352,14 +390,14 @@ public partial class MainWindow
         return (lookupDirectory, prefixPart, namePrefix);
     }
 
-    private void ResetTerminalCompletionCycle()
+    private void ResetTerminalCompletionCycle(TerminalTabSession session)
     {
-        _terminalCompletionContextKey = string.Empty;
-        _terminalCompletionIndex = -1;
-        _terminalCompletionMatches.Clear();
+        session.CompletionContextKey = string.Empty;
+        session.CompletionIndex = -1;
+        session.CompletionMatches.Clear();
     }
 
-    private async Task ReadTerminalStreamAsync(StreamReader reader, CancellationToken cancellationToken)
+    private async Task ReadTerminalStreamAsync(TerminalTabSession session, StreamReader reader, CancellationToken cancellationToken)
     {
         var buffer = new char[2048];
 
@@ -374,7 +412,7 @@ public partial class MainWindow
                 }
 
                 var chunk = new string(buffer, 0, read);
-                AppendTerminalOutput(chunk);
+                AppendTerminalOutput(session, chunk);
             }
         }
         catch (OperationCanceledException)
@@ -383,18 +421,18 @@ public partial class MainWindow
         }
         catch
         {
-            AppendTerminalOutput($"{Environment.NewLine}[terminal output stream ended unexpectedly]{Environment.NewLine}");
+            AppendTerminalOutput(session, $"{Environment.NewLine}[terminal output stream ended unexpectedly]{Environment.NewLine}");
         }
     }
 
-    private void AppendTerminalOutput(string rawText)
+    private void AppendTerminalOutput(TerminalTabSession session, string rawText)
     {
         if (string.IsNullOrEmpty(rawText))
         {
             return;
         }
 
-        var visibleText = ExtractAndApplyTerminalPathMarkers(rawText);
+        var visibleText = ExtractAndApplyTerminalPathMarkers(session, rawText);
         if (string.IsNullOrEmpty(visibleText))
         {
             return;
@@ -402,80 +440,59 @@ public partial class MainWindow
 
         Dispatcher.UIThread.Post(() =>
         {
-            var inlineCollection = TerminalOutputText.Inlines;
-            if (inlineCollection is null)
-            {
-                return;
-            }
-
-            foreach (var segment in ParseAnsiSegments(visibleText))
+            foreach (var segment in ParseAnsiSegments(session, visibleText))
             {
                 if (segment.Length == 0)
                 {
                     continue;
                 }
 
-                var run = new Run(segment.Text)
-                {
-                    Foreground = ResolveTerminalForeground(segment.ColorCode, segment.Bold),
-                };
-
-                if (segment.Bold)
-                {
-                    run.FontWeight = FontWeight.SemiBold;
-                }
-
-                inlineCollection.Add(run);
-                _terminalOutputCharCount += segment.Length;
+                session.Segments.Add(segment);
+                session.OutputCharCount += segment.Length;
             }
 
             const int maxOutputChars = 160_000;
-            if (_terminalOutputCharCount > maxOutputChars)
+            if (session.OutputCharCount > maxOutputChars)
             {
-                inlineCollection.Clear();
-                _terminalOutputCharCount = 0;
-                _terminalCurrentAnsiColor = -1;
-                _terminalAnsiBold = false;
-                inlineCollection.Add(new Run("[terminal output truncated]" + Environment.NewLine)
-                {
-                    Foreground = Brushes.SlateGray,
-                });
+                session.Segments.Clear();
+                session.OutputCharCount = 0;
+                session.CurrentAnsiColor = -1;
+                session.AnsiBold = false;
+                session.Segments.Add(new TerminalTextSegment("[terminal output truncated]" + Environment.NewLine, 90, false));
             }
 
-            if (TerminalOutputScrollViewer.Extent.Height > 0)
+            if (ReferenceEquals(_activeTerminalSession, session))
             {
-                TerminalOutputScrollViewer.Offset = new Vector(
-                    TerminalOutputScrollViewer.Offset.X,
-                    TerminalOutputScrollViewer.Extent.Height);
+                RenderTerminalSession(session);
             }
         });
     }
 
-    private string ExtractAndApplyTerminalPathMarkers(string rawText)
+    private string ExtractAndApplyTerminalPathMarkers(TerminalTabSession session, string rawText)
     {
         var visible = new StringBuilder(rawText.Length);
 
         foreach (var ch in rawText)
         {
-            if (_capturingTerminalPathMarker)
+            if (session.CapturingPathMarker)
             {
                 if (ch == TerminalPathMarkerEnd)
                 {
-                    var path = _terminalPathMarkerBuffer.ToString().Trim();
-                    _terminalPathMarkerBuffer.Clear();
-                    _capturingTerminalPathMarker = false;
-                    TrySyncExplorerPathFromTerminal(path);
+                    var path = session.PathMarkerBuffer.ToString().Trim();
+                    session.PathMarkerBuffer.Clear();
+                    session.CapturingPathMarker = false;
+                    TrySyncExplorerPathFromTerminal(session, path);
                     continue;
                 }
 
-                _terminalPathMarkerBuffer.Append(ch);
+                session.PathMarkerBuffer.Append(ch);
                 continue;
             }
 
             if (ch == TerminalPathMarkerStart)
             {
-                _capturingTerminalPathMarker = true;
-                _terminalPathMarkerBuffer.Clear();
+                session.CapturingPathMarker = true;
+                session.PathMarkerBuffer.Clear();
                 continue;
             }
 
@@ -485,7 +502,7 @@ public partial class MainWindow
         return visible.ToString();
     }
 
-    private void TrySyncExplorerPathFromTerminal(string path)
+    private void TrySyncExplorerPathFromTerminal(TerminalTabSession session, string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -509,7 +526,15 @@ public partial class MainWindow
 
         Dispatcher.UIThread.Post(() =>
         {
-            if (DataContext is not MainWindowViewModel viewModel)
+            session.Tab.Path = normalizedPath;
+            session.Tab.Title = BuildTabTitleFromPath(normalizedPath);
+
+            if (DataContext is not MainWindowViewModel viewModel || viewModel.SelectedTab is null)
+            {
+                return;
+            }
+
+            if (!ReferenceEquals(viewModel.SelectedTab, session.Tab))
             {
                 return;
             }
@@ -523,13 +548,13 @@ public partial class MainWindow
         });
     }
 
-    private IEnumerable<TerminalTextSegment> ParseAnsiSegments(string chunk)
+    private IEnumerable<TerminalTextSegment> ParseAnsiSegments(TerminalTabSession session, string chunk)
     {
-        if (_ansiPendingBuffer.Length > 0)
+        if (session.AnsiPendingBuffer.Length > 0)
         {
-            _ansiPendingBuffer.Append(chunk);
-            chunk = _ansiPendingBuffer.ToString();
-            _ansiPendingBuffer.Clear();
+            session.AnsiPendingBuffer.Append(chunk);
+            chunk = session.AnsiPendingBuffer.ToString();
+            session.AnsiPendingBuffer.Clear();
         }
 
         var textBuffer = new StringBuilder();
@@ -542,13 +567,13 @@ public partial class MainWindow
                 if (textBuffer.Length > 0)
                 {
                     var text = textBuffer.ToString().Replace("\r\n", "\n").Replace('\r', '\n');
-                    yield return new TerminalTextSegment(text, _terminalCurrentAnsiColor, _terminalAnsiBold);
+                    yield return new TerminalTextSegment(text, session.CurrentAnsiColor, session.AnsiBold);
                     textBuffer.Clear();
                 }
 
                 if (index + 1 >= chunk.Length)
                 {
-                    _ansiPendingBuffer.Append(chunk[index]);
+                    session.AnsiPendingBuffer.Append(chunk[index]);
                     yield break;
                 }
 
@@ -566,12 +591,12 @@ public partial class MainWindow
 
                 if (commandIndex >= chunk.Length)
                 {
-                    _ansiPendingBuffer.Append(chunk[index..]);
+                    session.AnsiPendingBuffer.Append(chunk[index..]);
                     yield break;
                 }
 
                 var commandPayload = chunk[(index + 2)..commandIndex];
-                ApplyAnsiSgrCommand(commandPayload);
+                ApplyAnsiSgrCommand(session, commandPayload);
                 index = commandIndex + 1;
                 continue;
             }
@@ -583,11 +608,11 @@ public partial class MainWindow
         if (textBuffer.Length > 0)
         {
             var text = textBuffer.ToString().Replace("\r\n", "\n").Replace('\r', '\n');
-            yield return new TerminalTextSegment(text, _terminalCurrentAnsiColor, _terminalAnsiBold);
+            yield return new TerminalTextSegment(text, session.CurrentAnsiColor, session.AnsiBold);
         }
     }
 
-    private void ApplyAnsiSgrCommand(string payload)
+    private void ApplyAnsiSgrCommand(TerminalTabSession session, string payload)
     {
         var codes = string.IsNullOrWhiteSpace(payload)
             ? ["0"]
@@ -603,22 +628,22 @@ public partial class MainWindow
             switch (code)
             {
                 case 0:
-                    _terminalCurrentAnsiColor = -1;
-                    _terminalAnsiBold = false;
+                    session.CurrentAnsiColor = -1;
+                    session.AnsiBold = false;
                     break;
                 case 1:
-                    _terminalAnsiBold = true;
+                    session.AnsiBold = true;
                     break;
                 case 22:
-                    _terminalAnsiBold = false;
+                    session.AnsiBold = false;
                     break;
                 case 39:
-                    _terminalCurrentAnsiColor = -1;
+                    session.CurrentAnsiColor = -1;
                     break;
                 default:
                     if ((code >= 30 && code <= 37) || (code >= 90 && code <= 97))
                     {
-                        _terminalCurrentAnsiColor = code;
+                        session.CurrentAnsiColor = code;
                     }
                     break;
             }
@@ -651,42 +676,104 @@ public partial class MainWindow
         };
     }
 
-    private void ShutdownEmbeddedTerminal()
+    private void RenderTerminalSession(TerminalTabSession session)
+    {
+        var inlineCollection = TerminalOutputText.Inlines;
+        if (inlineCollection is null)
+        {
+            return;
+        }
+
+        inlineCollection.Clear();
+        foreach (var segment in session.Segments)
+        {
+            if (segment.Length == 0)
+            {
+                continue;
+            }
+
+            var run = new Run(segment.Text)
+            {
+                Foreground = ResolveTerminalForeground(segment.ColorCode, segment.Bold),
+            };
+
+            if (segment.Bold)
+            {
+                run.FontWeight = FontWeight.SemiBold;
+            }
+
+            inlineCollection.Add(run);
+        }
+
+        TerminalShellLabel.Text = string.IsNullOrWhiteSpace(session.ShellPath)
+            ? string.Empty
+            : $"shell: {Path.GetFileName(session.ShellPath)}";
+
+        if (TerminalOutputScrollViewer.Extent.Height > 0)
+        {
+            TerminalOutputScrollViewer.Offset = new Vector(
+                TerminalOutputScrollViewer.Offset.X,
+                TerminalOutputScrollViewer.Extent.Height);
+        }
+    }
+
+    private TerminalTabSession GetOrCreateTerminalSession(ExplorerTabViewModel tab)
+    {
+        if (_terminalSessions.TryGetValue(tab, out var existing))
+        {
+            return existing;
+        }
+
+        var created = new TerminalTabSession(tab);
+        _terminalSessions[tab] = created;
+        return created;
+    }
+
+    private void ClearTerminalSession(TerminalTabSession session)
+    {
+        session.AnsiPendingBuffer.Clear();
+        session.OutputCharCount = 0;
+        session.CurrentAnsiColor = -1;
+        session.AnsiBold = false;
+        session.Segments.Clear();
+        session.CapturingPathMarker = false;
+        session.PathMarkerBuffer.Clear();
+        ResetTerminalCompletionCycle(session);
+    }
+
+    private void ShutdownEmbeddedTerminal(TerminalTabSession session)
     {
         try
         {
-            _ansiPendingBuffer.Clear();
-            ResetTerminalCompletionCycle();
-            _capturingTerminalPathMarker = false;
-            _terminalPathMarkerBuffer.Clear();
+            ClearTerminalSession(session);
 
-            _terminalReadCts?.Cancel();
-            _terminalReadCts?.Dispose();
-            _terminalReadCts = null;
+            session.ReadCts?.Cancel();
+            session.ReadCts?.Dispose();
+            session.ReadCts = null;
 
-            if (_embeddedTerminalProcess is not null)
+            if (session.Process is not null)
             {
-                if (!_embeddedTerminalProcess.HasExited)
+                if (!session.Process.HasExited)
                 {
                     try
                     {
-                        _embeddedTerminalProcess.StandardInput.WriteLine("exit");
-                        _embeddedTerminalProcess.StandardInput.Flush();
+                        session.Process.StandardInput.WriteLine("exit");
+                        session.Process.StandardInput.Flush();
                     }
                     catch
                     {
                         // Ignore write failures while shutting down.
                     }
 
-                    _embeddedTerminalProcess.WaitForExit(350);
-                    if (!_embeddedTerminalProcess.HasExited)
+                    session.Process.WaitForExit(350);
+                    if (!session.Process.HasExited)
                     {
-                        _embeddedTerminalProcess.Kill(entireProcessTree: true);
+                        session.Process.Kill(entireProcessTree: true);
                     }
                 }
 
-                _embeddedTerminalProcess.Dispose();
-                _embeddedTerminalProcess = null;
+                session.Process.Dispose();
+                session.Process = null;
             }
         }
         catch
@@ -695,8 +782,64 @@ public partial class MainWindow
         }
     }
 
+    private void ShutdownAllEmbeddedTerminals()
+    {
+        foreach (var session in _terminalSessions.Values)
+        {
+            ShutdownEmbeddedTerminal(session);
+        }
+
+        _terminalSessions.Clear();
+        _activeTerminalSession = null;
+    }
+
+    private static string BuildTabTitleFromPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "Tab";
+        }
+
+        var normalizedPath = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(normalizedPath);
+        if (string.Equals(root, normalizedPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return "Macintosh HD";
+        }
+
+        var fileName = Path.GetFileName(normalizedPath.TrimEnd(Path.DirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(fileName) ? normalizedPath : fileName;
+    }
+
     private readonly record struct TerminalTextSegment(string Text, int ColorCode, bool Bold)
     {
         public int Length => Text.Length;
+    }
+
+    private sealed class TerminalTabSession
+    {
+        public TerminalTabSession(ExplorerTabViewModel tab)
+        {
+            Tab = tab;
+        }
+
+        public ExplorerTabViewModel Tab { get; }
+        public bool IsVisible { get; set; }
+        public Process? Process { get; set; }
+        public CancellationTokenSource? ReadCts { get; set; }
+        public string ShellPath { get; set; } = string.Empty;
+
+        public List<TerminalTextSegment> Segments { get; } = [];
+        public int OutputCharCount { get; set; }
+        public int CurrentAnsiColor { get; set; } = -1;
+        public bool AnsiBold { get; set; }
+        public StringBuilder AnsiPendingBuffer { get; } = new();
+
+        public List<string> CompletionMatches { get; } = [];
+        public string CompletionContextKey { get; set; } = string.Empty;
+        public int CompletionIndex { get; set; } = -1;
+
+        public bool CapturingPathMarker { get; set; }
+        public StringBuilder PathMarkerBuffer { get; } = new();
     }
 }

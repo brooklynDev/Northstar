@@ -6,7 +6,9 @@ using Avalonia.Media.Imaging;
 using Northstar.Desktop.ViewModels;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Text;
 using System.Threading;
 
@@ -35,18 +37,10 @@ public partial class MainWindow : Window
     private int _previewLoadVersion;
     private Bitmap? _previewBitmap;
 
-    private readonly StringBuilder _ansiPendingBuffer = new();
     private readonly SemaphoreSlim _terminalStartGate = new(1, 1);
-    private Process? _embeddedTerminalProcess;
-    private CancellationTokenSource? _terminalReadCts;
-    private readonly List<string> _terminalCompletionMatches = [];
-    private string _terminalCompletionContextKey = string.Empty;
-    private int _terminalCompletionIndex = -1;
-    private int _terminalOutputCharCount;
-    private int _terminalCurrentAnsiColor = -1;
-    private bool _terminalAnsiBold;
-    private bool _capturingTerminalPathMarker;
-    private readonly StringBuilder _terminalPathMarkerBuffer = new();
+    private readonly Dictionary<ExplorerTabViewModel, TerminalTabSession> _terminalSessions = new();
+    private TerminalTabSession? _activeTerminalSession;
+    private MainWindowViewModel? _subscribedViewModel;
 
     public MainWindow()
     {
@@ -58,6 +52,7 @@ public partial class MainWindow : Window
             if (DataContext is MainWindowViewModel viewModel)
             {
                 ApplyColorTheme(viewModel.SelectedTheme);
+                EnsureViewModelSubscriptions(viewModel);
             }
 
             ExplorerList.Focus();
@@ -71,7 +66,8 @@ public partial class MainWindow : Window
 
             _previewBitmap?.Dispose();
             _previewBitmap = null;
-            ShutdownEmbeddedTerminal();
+            ShutdownAllEmbeddedTerminals();
+            DetachViewModelSubscriptions();
         };
 
         AddHandler(KeyDownEvent, Window_OnPreviewKeyDown, RoutingStrategies.Tunnel);
@@ -81,6 +77,87 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel viewModel)
         {
             ApplyColorTheme(viewModel.SelectedTheme);
+            EnsureViewModelSubscriptions(viewModel);
+        }
+
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                EnsureViewModelSubscriptions(viewModel);
+                ApplyColorTheme(viewModel.SelectedTheme);
+                SwitchTerminalSessionForSelectedTab();
+            }
+            else
+            {
+                DetachViewModelSubscriptions();
+            }
+        };
+    }
+
+    private void EnsureViewModelSubscriptions(MainWindowViewModel viewModel)
+    {
+        if (ReferenceEquals(_subscribedViewModel, viewModel))
+        {
+            return;
+        }
+
+        DetachViewModelSubscriptions();
+        _subscribedViewModel = viewModel;
+        _subscribedViewModel.PropertyChanged += ViewModel_OnPropertyChanged;
+        _subscribedViewModel.Tabs.CollectionChanged += Tabs_OnCollectionChanged;
+    }
+
+    private void DetachViewModelSubscriptions()
+    {
+        if (_subscribedViewModel is null)
+        {
+            return;
+        }
+
+        _subscribedViewModel.PropertyChanged -= ViewModel_OnPropertyChanged;
+        _subscribedViewModel.Tabs.CollectionChanged -= Tabs_OnCollectionChanged;
+        _subscribedViewModel = null;
+    }
+
+    private void ViewModel_OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedTab))
+        {
+            SwitchTerminalSessionForSelectedTab();
+            return;
+        }
+
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedTheme))
+        {
+            ApplyColorTheme(viewModel.SelectedTheme);
+        }
+    }
+
+    private void Tabs_OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is null)
+        {
+            return;
+        }
+
+        foreach (var removed in e.OldItems)
+        {
+            if (removed is not ExplorerTabViewModel removedTab)
+            {
+                continue;
+            }
+
+            if (_terminalSessions.TryGetValue(removedTab, out var session))
+            {
+                ShutdownEmbeddedTerminal(session);
+                _terminalSessions.Remove(removedTab);
+            }
         }
     }
 }

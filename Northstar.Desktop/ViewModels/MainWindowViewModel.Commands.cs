@@ -99,6 +99,68 @@ public partial class MainWindowViewModel
     }
 
     [RelayCommand]
+    private void NewTab()
+    {
+        OpenPathInNewTab(CurrentPath);
+    }
+
+    [RelayCommand]
+    private void CloseTab(ExplorerTabViewModel? tab)
+    {
+        var target = tab ?? SelectedTab;
+        if (target is null || Tabs.Count == 0)
+        {
+            return;
+        }
+
+        if (Tabs.Count == 1)
+        {
+            target.Path = CurrentPath;
+            target.Title = BuildTabTitle(CurrentPath);
+            SelectedTab = target;
+            return;
+        }
+
+        var wasSelected = ReferenceEquals(SelectedTab, target);
+        var index = Tabs.IndexOf(target);
+        if (index < 0)
+        {
+            return;
+        }
+
+        Tabs.RemoveAt(index);
+        if (!wasSelected)
+        {
+            return;
+        }
+
+        var nextIndex = Math.Clamp(index, 0, Tabs.Count - 1);
+        SelectedTab = Tabs[nextIndex];
+    }
+
+    [RelayCommand]
+    private void OpenItemInNewTab(FileSystemItemViewModel? item)
+    {
+        var target = item ?? SelectedExplorerItem;
+        if (target is null)
+        {
+            return;
+        }
+
+        if (target.IsDirectory)
+        {
+            OpenPathInNewTab(target.FullPath);
+            return;
+        }
+
+        var parent = Path.GetDirectoryName(target.FullPath);
+        if (!string.IsNullOrWhiteSpace(parent))
+        {
+            OpenPathInNewTab(parent);
+        }
+    }
+
+    [RelayCommand]
     private void OpenInTerminal()
     {
         try
@@ -387,6 +449,30 @@ public partial class MainWindowViewModel
         }
 
         return [];
+    }
+
+    private void OpenPathInNewTab(string? requestedPath)
+    {
+        if (string.IsNullOrWhiteSpace(requestedPath))
+        {
+            return;
+        }
+
+        var targetPath = requestedPath;
+        if (File.Exists(targetPath))
+        {
+            targetPath = Path.GetDirectoryName(targetPath);
+        }
+
+        if (string.IsNullOrWhiteSpace(targetPath) || !Directory.Exists(targetPath))
+        {
+            return;
+        }
+
+        var normalizedPath = Path.GetFullPath(targetPath);
+        var tab = new ExplorerTabViewModel(BuildTabTitle(normalizedPath), normalizedPath);
+        Tabs.Add(tab);
+        SelectedTab = tab;
     }
 
     [RelayCommand]

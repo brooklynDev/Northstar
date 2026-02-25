@@ -253,10 +253,45 @@
         <Style Selector="ListBox#ExplorerList ListBoxItem:selected">
             <Setter Property="Background" Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
         </Style>
+
+        <Style Selector="ListBox#TabsList ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style Selector="Border.tabChip">
+            <Setter Property="Background" Value="{DynamicResource NavBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource NavBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,6" />
+        </Style>
+
+        <Style Selector="ListBox#TabsList ListBoxItem:selected Border.tabChip">
+            <Setter Property="Background" Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TerminalToggleBorderBrush}" />
+        </Style>
+
+        <Style Selector="Button.tabClose">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ColumnHeaderForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="MinWidth" Value="22" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+        </Style>
+
+        <Style Selector="Button.tabClose:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource NavForegroundBrush}" />
+        </Style>
     </Window.Styles>
 
     <Border Classes="chrome" Margin="14">
-        <Grid x:Name="RootLayoutGrid" RowDefinitions="Auto,*,Auto,0">
+        <Grid x:Name="RootLayoutGrid" RowDefinitions="Auto,Auto,*,Auto,0">
             <Border Classes="toolbar">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -332,7 +367,47 @@
                 </Grid>
             </Border>
 
-            <Grid Grid.Row="1" x:Name="MainContentGrid" ColumnDefinitions="290,*,360">
+            <Border Grid.Row="1" Background="{DynamicResource ToolbarBackgroundBrush}" BorderBrush="{DynamicResource ToolbarBorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                        <ListBox x:Name="TabsList"
+                                 ItemsSource="{Binding Tabs}"
+                                 SelectedItem="{Binding SelectedTab}"
+                                 BorderThickness="0"
+                                 Background="Transparent">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ExplorerTabViewModel">
+                                    <Border Classes="tabChip">
+                                        <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                            <TextBlock Text="{Binding Title}"
+                                                       Foreground="{DynamicResource NavForegroundBrush}"
+                                                       VerticalAlignment="Center" />
+                                            <Button Grid.Column="1"
+                                                    Classes="tabClose"
+                                                    Click="CloseTabButton_OnClick"
+                                                    Tag="{Binding}"
+                                                    Content="✕" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+
+                    <Button Grid.Column="1"
+                            Classes="nav"
+                            Click="NewTabButton_OnClick"
+                            Content="+ New Tab"
+                            MinWidth="96" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2" x:Name="MainContentGrid" ColumnDefinitions="290,*,360">
                 <Border Background="{DynamicResource SidebarPaneBackgroundBrush}" BorderBrush="{DynamicResource SidebarPaneBorderBrush}" BorderThickness="0,0,1,0" Padding="14,12">
                     <ScrollViewer>
                         <StackPanel Spacing="16">
@@ -439,6 +514,7 @@
                             <ListBox.ContextMenu>
                                 <ContextMenu Opening="ExplorerContextMenu_OnOpening">
                                     <MenuItem Header="Open" Click="OpenItemMenu_OnClick" />
+                                    <MenuItem Header="Open in New Tab" Click="OpenInNewTabMenu_OnClick" />
                                     <Separator />
                                     <MenuItem Header="Rename" Click="RenameItemMenu_OnClick" />
                                     <Separator />
@@ -461,6 +537,7 @@
                                         <Grid.ContextMenu>
                                             <ContextMenu Opening="ExplorerContextMenu_OnOpening">
                                                 <MenuItem Header="Open" Click="OpenItemMenu_OnClick" Tag="{Binding}" />
+                                                <MenuItem Header="Open in New Tab" Click="OpenInNewTabMenu_OnClick" Tag="{Binding}" />
                                                 <Separator />
                                                 <MenuItem Header="Rename" Click="RenameItemMenu_OnClick" Tag="{Binding}" />
                                                 <Separator />
@@ -543,7 +620,7 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="2" Background="{DynamicResource StatusBarBackgroundBrush}" BorderBrush="{DynamicResource StatusBarBorderBrush}" BorderThickness="1,1,0,0" Padding="10,8">
+            <Border Grid.Row="3" Background="{DynamicResource StatusBarBackgroundBrush}" BorderBrush="{DynamicResource StatusBarBorderBrush}" BorderThickness="1,1,0,0" Padding="10,8">
                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                     <TextBlock Text="Northstar Explorer"
                                Foreground="{DynamicResource StatusTextForegroundBrush}"
@@ -558,7 +635,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="3" x:Name="EmbeddedTerminalPane" Classes="embeddedTerminal" IsVisible="False">
+            <Border Grid.Row="4" x:Name="EmbeddedTerminalPane" Classes="embeddedTerminal" IsVisible="False">
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
                         <TextBlock Text="Integrated Terminal"
