@@ -5,8 +5,6 @@ APP_EXECUTABLE := Northstar.Desktop
 CONFIGURATION ?= Release
 RUNTIMES := osx-arm64 osx-x64
 ARTIFACT_ROOT := artifacts
-PUBLISH_ROOT := $(ARTIFACT_ROOT)/publish
-PACKAGE_ROOT := $(ARTIFACT_ROOT)/packages
 
 .PHONY: run build publish clean $(RUNTIMES)
 
@@ -17,18 +15,21 @@ build:
 	dotnet build $(SOLUTION)
 
 publish: $(RUNTIMES)
-	@echo "Created distributable app bundles in $(PACKAGE_ROOT):"
-	@ls -1 $(PACKAGE_ROOT)
+	@echo "Created distributable artifacts:"
+	@find $(ARTIFACT_ROOT) -maxdepth 2 -name "*.zip" -print
 
 $(RUNTIMES):
 	@runtime="$@"; \
-	publish_dir="$(PUBLISH_ROOT)/$$runtime"; \
-	bundle_name="$(APP_NAME)-$$runtime.app"; \
-	bundle_dir="$(PACKAGE_ROOT)/$$bundle_name"; \
-	zip_path="$(PACKAGE_ROOT)/$(APP_NAME)-$$runtime.zip"; \
+	runtime_dir="$(ARTIFACT_ROOT)/$$runtime"; \
+	temp_dir="$$(mktemp -d /tmp/northstar-$$runtime-XXXXXX)"; \
+	publish_dir="$$temp_dir/publish"; \
+	bundle_dir="$$temp_dir/$(APP_NAME).app"; \
+	zip_path="$$runtime_dir/$(APP_NAME).zip"; \
 	echo "Publishing $$runtime..."; \
+	rm -rf "$$runtime_dir"; \
+	mkdir -p "$$runtime_dir"; \
+	rm -rf "$(ARTIFACT_ROOT)/packages" "$(ARTIFACT_ROOT)/publish"; \
 	dotnet publish $(PROJECT) -c $(CONFIGURATION) -r $$runtime --self-contained true -o "$$publish_dir"; \
-	rm -rf "$$bundle_dir"; \
 	mkdir -p "$$bundle_dir/Contents/MacOS" "$$bundle_dir/Contents/Resources"; \
 	cp -R "$$publish_dir/." "$$bundle_dir/Contents/MacOS/"; \
 	chmod +x "$$bundle_dir/Contents/MacOS/$(APP_EXECUTABLE)"; \
@@ -57,6 +58,7 @@ $(RUNTIMES):
 	'</plist>' > "$$bundle_dir/Contents/Info.plist"; \
 	rm -f "$$zip_path"; \
 	ditto -c -k --sequesterRsrc --keepParent "$$bundle_dir" "$$zip_path"; \
+	rm -rf "$$temp_dir"; \
 	echo "Packaged $$zip_path"
 
 clean:
