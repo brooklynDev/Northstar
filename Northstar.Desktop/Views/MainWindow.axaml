@@ -105,6 +105,22 @@
             <Setter Property="Padding" Value="7,5" />
         </Style>
 
+        <Style Selector="Button.columnHeader">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="#97A2B7" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+        </Style>
+
+        <Style Selector="Button.columnHeader:pointerover">
+            <Setter Property="Foreground" Value="#C7D4EB" />
+        </Style>
+
         <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover TextBlock.fileName">
             <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
@@ -249,10 +265,44 @@
                 <Border Grid.Column="1" Background="#101823" Padding="0,8,0,0">
                     <Grid RowDefinitions="Auto,*">
                         <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="16,0,16,8">
-                            <TextBlock Text="Name" Foreground="#97A2B7" FontWeight="SemiBold" />
-                            <TextBlock Grid.Column="1" Text="Type" Foreground="#97A2B7" FontWeight="SemiBold" />
-                            <TextBlock Grid.Column="2" Text="Size" Foreground="#97A2B7" FontWeight="SemiBold" />
-                            <TextBlock Grid.Column="3" Text="Modified" Foreground="#97A2B7" FontWeight="SemiBold" />
+                            <Button Classes="columnHeader"
+                                    Command="{Binding SortByCommand}"
+                                    CommandParameter="Name">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Name" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding NameSortIndicator}" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="1"
+                                    Classes="columnHeader"
+                                    Command="{Binding SortByCommand}"
+                                    CommandParameter="Type">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Type" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding TypeSortIndicator}" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="2"
+                                    Classes="columnHeader"
+                                    Command="{Binding SortByCommand}"
+                                    CommandParameter="Size">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Size" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding SizeSortIndicator}" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button Grid.Column="3"
+                                    Classes="columnHeader"
+                                    Command="{Binding SortByCommand}"
+                                    CommandParameter="Modified">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="Modified" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding ModifiedSortIndicator}" />
+                                </StackPanel>
+                            </Button>
                         </Grid>
 
                         <ListBox Grid.Row="1"

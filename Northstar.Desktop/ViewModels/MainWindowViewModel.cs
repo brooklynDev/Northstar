@@ -36,6 +36,20 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private FileSystemItemViewModel? selectedExplorerItem;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NameSortIndicator))]
+    [NotifyPropertyChangedFor(nameof(TypeSortIndicator))]
+    [NotifyPropertyChangedFor(nameof(SizeSortIndicator))]
+    [NotifyPropertyChangedFor(nameof(ModifiedSortIndicator))]
+    private string sortColumn = "Name";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NameSortIndicator))]
+    [NotifyPropertyChangedFor(nameof(TypeSortIndicator))]
+    [NotifyPropertyChangedFor(nameof(SizeSortIndicator))]
+    [NotifyPropertyChangedFor(nameof(ModifiedSortIndicator))]
+    private bool sortAscending = true;
+
     public ObservableCollection<QuickAccessItemViewModel> QuickAccessItems { get; } = [];
 
     public ObservableCollection<QuickAccessItemViewModel> SidebarFolders { get; } = [];
@@ -45,6 +59,14 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<FileSystemItemViewModel> ExplorerItems { get; } = [];
 
     public bool IsPathReadMode => !IsPathEditMode;
+
+    public string NameSortIndicator => BuildSortIndicator("Name");
+
+    public string TypeSortIndicator => BuildSortIndicator("Type");
+
+    public string SizeSortIndicator => BuildSortIndicator("Size");
+
+    public string ModifiedSortIndicator => BuildSortIndicator("Modified");
 
     public MainWindowViewModel()
     {
@@ -141,6 +163,27 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OpenSelected()
     {
         OpenItem(SelectedExplorerItem);
+    }
+
+    [RelayCommand]
+    private void SortBy(string? column)
+    {
+        if (string.IsNullOrWhiteSpace(column))
+        {
+            return;
+        }
+
+        if (string.Equals(SortColumn, column, StringComparison.OrdinalIgnoreCase))
+        {
+            SortAscending = !SortAscending;
+        }
+        else
+        {
+            SortColumn = column;
+            SortAscending = true;
+        }
+
+        ApplySearchFilter();
     }
 
     [RelayCommand]
@@ -366,10 +409,43 @@ public partial class MainWindowViewModel : ViewModelBase
             ? _allItems
             : _allItems.Where(i => i.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        foreach (var item in filtered)
+        foreach (var item in SortItems(filtered))
         {
             ExplorerItems.Add(item);
         }
+    }
+
+    private IEnumerable<FileSystemItemViewModel> SortItems(IEnumerable<FileSystemItemViewModel> source)
+    {
+        var ordered = source.OrderBy(item => !item.IsDirectory);
+
+        ordered = SortColumn switch
+        {
+            "Type" => SortAscending
+                ? ordered.ThenBy(item => item.Type, StringComparer.OrdinalIgnoreCase)
+                : ordered.ThenByDescending(item => item.Type, StringComparer.OrdinalIgnoreCase),
+            "Size" => SortAscending
+                ? ordered.ThenBy(item => item.SortSize)
+                : ordered.ThenByDescending(item => item.SortSize),
+            "Modified" => SortAscending
+                ? ordered.ThenBy(item => item.SortModifiedUtc)
+                : ordered.ThenByDescending(item => item.SortModifiedUtc),
+            _ => SortAscending
+                ? ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
+                : ordered.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase),
+        };
+
+        return ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private string BuildSortIndicator(string column)
+    {
+        if (!string.Equals(SortColumn, column, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        return SortAscending ? "▲" : "▼";
     }
 
     private static void TryLaunchFile(string fullPath)

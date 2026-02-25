@@ -12,6 +12,7 @@ public sealed class FileSystemItemViewModel
         bool isDirectory,
         string type,
         string size,
+        long sortSize,
         DateTimeOffset modifiedUtc,
         IImage? icon,
         string iconGlyph)
@@ -21,6 +22,8 @@ public sealed class FileSystemItemViewModel
         IsDirectory = isDirectory;
         Type = type;
         Size = size;
+        SortSize = sortSize;
+        SortModifiedUtc = modifiedUtc;
         Modified = modifiedUtc.ToLocalTime().ToString("MMM d, yyyy h:mm tt");
         Icon = icon;
         IconGlyph = iconGlyph;
@@ -36,6 +39,10 @@ public sealed class FileSystemItemViewModel
 
     public string Size { get; }
 
+    public long SortSize { get; }
+
+    public DateTimeOffset SortModifiedUtc { get; }
+
     public string Modified { get; }
 
     public IImage? Icon { get; }
@@ -50,6 +57,7 @@ public sealed class FileSystemItemViewModel
             isDirectory: true,
             type: "Folder",
             size: "--",
+            sortSize: -1,
             modifiedUtc: info.LastWriteTimeUtc,
             icon: icon,
             iconGlyph: "📁");
@@ -63,6 +71,7 @@ public sealed class FileSystemItemViewModel
             isDirectory: false,
             type: BuildTypeLabel(info.Extension),
             size: FormatSize(info.Length),
+            sortSize: info.Length,
             modifiedUtc: info.LastWriteTimeUtc,
             icon: icon,
             iconGlyph: BuildFallbackGlyph(info.Extension));
