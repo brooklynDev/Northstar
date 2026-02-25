@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Northstar.Desktop.Services;
@@ -15,6 +16,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly Stack<string> _backHistory = new();
     private readonly Stack<string> _forwardHistory = new();
     private readonly MacFileIconProvider _iconProvider = new();
+    private readonly List<string> _clipboardPaths = [];
+    private bool _clipboardIsCut;
     private List<FileSystemItemViewModel> _allItems = [];
 
     [ObservableProperty]
@@ -163,6 +166,158 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OpenSelected()
     {
         OpenItem(SelectedExplorerItem);
+    }
+
+    [RelayCommand]
+    private void CopyItem(FileSystemItemViewModel? item)
+    {
+        var target = item ?? SelectedExplorerItem;
+        if (target is null)
+        {
+            return;
+        }
+
+        _clipboardPaths.Clear();
+        _clipboardPaths.Add(target.FullPath);
+        _clipboardIsCut = false;
+        PasteCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand]
+    private void CutItem(FileSystemItemViewModel? item)
+    {
+        var target = item ?? SelectedExplorerItem;
+        if (target is null)
+        {
+            return;
+        }
+
+        _clipboardPaths.Clear();
+        _clipboardPaths.Add(target.FullPath);
+        _clipboardIsCut = true;
+        PasteCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanPaste() => _clipboardPaths.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanPaste))]
+    private void Paste()
+    {
+        if (_clipboardPaths.Count == 0 || !Directory.Exists(CurrentPath))
+        {
+            return;
+        }
+
+        var allSucceeded = true;
+        foreach (var sourcePath in _clipboardPaths.ToList())
+        {
+            try
+            {
+                var sourceName = Path.GetFileName(sourcePath.TrimEnd(Path.DirectorySeparatorChar));
+                if (string.IsNullOrWhiteSpace(sourceName))
+                {
+                    allSucceeded = false;
+                    continue;
+                }
+
+                var destinationPath = GetUniqueDestinationPath(Path.Combine(CurrentPath, sourceName));
+
+                if (_clipboardIsCut)
+                {
+                    MoveEntry(sourcePath, destinationPath);
+                }
+                else
+                {
+                    CopyEntry(sourcePath, destinationPath);
+                }
+            }
+            catch
+            {
+                allSucceeded = false;
+            }
+        }
+
+        if (_clipboardIsCut && allSucceeded)
+        {
+            _clipboardPaths.Clear();
+            _clipboardIsCut = false;
+            PasteCommand.NotifyCanExecuteChanged();
+        }
+
+        OpenDirectory(CurrentPath, addToHistory: false);
+    }
+
+    [RelayCommand]
+    private void DeleteItem(FileSystemItemViewModel? item)
+    {
+        var target = item ?? SelectedExplorerItem;
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            MoveToTrash(target.FullPath);
+            OpenDirectory(CurrentPath, addToHistory: false);
+        }
+        catch
+        {
+            // Ignore delete errors in this basic version.
+        }
+    }
+
+    [RelayCommand]
+    private void NewFolder()
+    {
+        if (!Directory.Exists(CurrentPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var folderPath = GetUniqueDestinationPath(Path.Combine(CurrentPath, "New Folder"));
+            Directory.CreateDirectory(folderPath);
+            OpenDirectory(CurrentPath, addToHistory: false);
+        }
+        catch
+        {
+            // Ignore new-folder errors in this basic version.
+        }
+    }
+
+    [RelayCommand]
+    private void CopyPath(FileSystemItemViewModel? item)
+    {
+        var target = item ?? SelectedExplorerItem;
+        if (target is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "pbcopy",
+                RedirectStandardInput = true,
+                UseShellExecute = false,
+            });
+
+            if (process is null)
+            {
+                return;
+            }
+
+            process.StandardInput.Write(target.FullPath);
+            process.StandardInput.Close();
+            process.WaitForExit(1000);
+        }
+        catch
+        {
+            // Ignore clipboard errors in this basic version.
+        }
     }
 
     [RelayCommand]
@@ -463,5 +618,125 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             // Ignore open failures in this basic version.
         }
+    }
+
+    private static void CopyEntry(string sourcePath, string destinationPath)
+    {
+        if (Directory.Exists(sourcePath))
+        {
+            CopyDirectoryRecursive(sourcePath, destinationPath);
+            return;
+        }
+
+        if (File.Exists(sourcePath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? ".");
+            File.Copy(sourcePath, destinationPath, overwrite: false);
+        }
+    }
+
+    private static void MoveEntry(string sourcePath, string destinationPath)
+    {
+        if (Directory.Exists(sourcePath))
+        {
+            Directory.Move(sourcePath, destinationPath);
+            return;
+        }
+
+        if (File.Exists(sourcePath))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? ".");
+            File.Move(sourcePath, destinationPath);
+        }
+    }
+
+    private static void CopyDirectoryRecursive(string sourceDirectory, string destinationDirectory)
+    {
+        Directory.CreateDirectory(destinationDirectory);
+
+        foreach (var file in Directory.EnumerateFiles(sourceDirectory))
+        {
+            var destinationFile = Path.Combine(destinationDirectory, Path.GetFileName(file));
+            File.Copy(file, destinationFile, overwrite: false);
+        }
+
+        foreach (var directory in Directory.EnumerateDirectories(sourceDirectory))
+        {
+            var destinationSubdirectory = Path.Combine(destinationDirectory, Path.GetFileName(directory));
+            CopyDirectoryRecursive(directory, destinationSubdirectory);
+        }
+    }
+
+    private static string GetUniqueDestinationPath(string targetPath)
+    {
+        if (!File.Exists(targetPath) && !Directory.Exists(targetPath))
+        {
+            return targetPath;
+        }
+
+        var directory = Path.GetDirectoryName(targetPath) ?? ".";
+        var originalName = Path.GetFileName(targetPath);
+        var extension = Path.GetExtension(originalName);
+        var baseName = Path.GetFileNameWithoutExtension(originalName);
+
+        for (var i = 1; i < 1000; i++)
+        {
+            var candidateName = string.IsNullOrWhiteSpace(extension)
+                ? $"{baseName} - Copy{(i == 1 ? string.Empty : $" {i}")}"
+                : $"{baseName} - Copy{(i == 1 ? string.Empty : $" {i}")}{extension}";
+            var candidatePath = Path.Combine(directory, candidateName);
+
+            if (!File.Exists(candidatePath) && !Directory.Exists(candidatePath))
+            {
+                return candidatePath;
+            }
+        }
+
+        return targetPath;
+    }
+
+    private static void MoveToTrash(string fullPath)
+    {
+        if (!OperatingSystem.IsMacOS())
+        {
+            if (Directory.Exists(fullPath))
+            {
+                Directory.Delete(fullPath, recursive: true);
+            }
+            else if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+
+            return;
+        }
+
+        var escapedPath = EscapeAppleScriptString(fullPath);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "osascript",
+            UseShellExecute = false,
+            ArgumentList =
+            {
+                "-e",
+                $"tell application \"Finder\" to delete POSIX file \"{escapedPath}\"",
+            },
+        })?.WaitForExit(2000);
+    }
+
+    private static string EscapeAppleScriptString(string value)
+    {
+        var builder = new StringBuilder(value.Length + 4);
+        foreach (var ch in value)
+        {
+            if (ch is '"' or '\\')
+            {
+                builder.Append('\\');
+            }
+
+            builder.Append(ch);
+        }
+
+        return builder.ToString();
     }
 }

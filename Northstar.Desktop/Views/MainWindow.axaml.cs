@@ -60,14 +60,59 @@ public partial class MainWindow : Window
 
     private void Window_OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
-        if (DataContext is MainWindowViewModel viewModel &&
-            e.Key == Key.L &&
-            (e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control)))
+        if (DataContext is MainWindowViewModel viewModel)
         {
-            viewModel.BeginPathEditCommand.Execute(null);
-            FocusPathEditor();
-            e.Handled = true;
-            return;
+            var hasPrimaryModifier = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
+
+            if (hasPrimaryModifier && e.Key == Key.L)
+            {
+                viewModel.BeginPathEditCommand.Execute(null);
+                FocusPathEditor();
+                e.Handled = true;
+                return;
+            }
+
+            if (ShouldRouteToExplorer(e.Source))
+            {
+                if (hasPrimaryModifier && e.Key == Key.C)
+                {
+                    viewModel.CopyItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    e.Handled = true;
+                    return;
+                }
+
+                if (hasPrimaryModifier && e.Key == Key.X)
+                {
+                    viewModel.CutItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    e.Handled = true;
+                    return;
+                }
+
+                if (hasPrimaryModifier && e.Key == Key.V)
+                {
+                    if (viewModel.PasteCommand.CanExecute(null))
+                    {
+                        viewModel.PasteCommand.Execute(null);
+                    }
+
+                    e.Handled = true;
+                    return;
+                }
+
+                if (hasPrimaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.N)
+                {
+                    viewModel.NewFolderCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                }
+
+                if (e.Key is Key.Delete)
+                {
+                    viewModel.DeleteItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    e.Handled = true;
+                    return;
+                }
+            }
         }
 
         if (!ShouldRouteToExplorer(e.Source))
@@ -283,5 +328,107 @@ public partial class MainWindow : Window
         }
 
         viewModel.SelectedExplorerItem = item;
+    }
+
+    private void ExplorerRow_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Control row || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (row.DataContext is not FileSystemItemViewModel item)
+        {
+            return;
+        }
+
+        if (e.GetCurrentPoint(row).Properties.IsRightButtonPressed)
+        {
+            viewModel.SelectedExplorerItem = item;
+            ExplorerList.SelectedItem = item;
+        }
+    }
+
+    private void OpenItemMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.OpenItemCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private void CopyItemMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.CopyItemCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private void CutItemMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.CutItemCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private void DeleteItemMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.DeleteItemCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private void CopyPathMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.CopyPathCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
+    }
+
+    private void PasteMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (viewModel.PasteCommand.CanExecute(null))
+        {
+            viewModel.PasteCommand.Execute(null);
+        }
+    }
+
+    private void NewFolderMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.NewFolderCommand.Execute(null);
+    }
+
+    private void RefreshMenu_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.RefreshCommand.Execute(null);
     }
 }

@@ -315,9 +315,32 @@
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Margin="8,0,8,8">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Paste" Click="PasteMenu_OnClick" />
+                                    <MenuItem Header="New Folder" Click="NewFolderMenu_OnClick" />
+                                    <Separator />
+                                    <MenuItem Header="Refresh" Click="RefreshMenu_OnClick" />
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:FileSystemItemViewModel">
-                                    <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="8,10">
+                                    <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*"
+                                          Margin="8,10"
+                                          PointerPressed="ExplorerRow_OnPointerPressed">
+                                        <Grid.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Open" Click="OpenItemMenu_OnClick" Tag="{Binding}" />
+                                                <Separator />
+                                                <MenuItem Header="Copy" Click="CopyItemMenu_OnClick" Tag="{Binding}" />
+                                                <MenuItem Header="Cut" Click="CutItemMenu_OnClick" Tag="{Binding}" />
+                                                <MenuItem Header="Paste" Click="PasteMenu_OnClick" />
+                                                <Separator />
+                                                <MenuItem Header="Copy Path" Click="CopyPathMenu_OnClick" Tag="{Binding}" />
+                                                <MenuItem Header="Move to Trash" Click="DeleteItemMenu_OnClick" Tag="{Binding}" />
+                                            </ContextMenu>
+                                        </Grid.ContextMenu>
+
                                         <StackPanel Orientation="Horizontal" Spacing="10">
                                             <Grid Width="18" Height="18" VerticalAlignment="Center">
                                                 <Image Source="{Binding Icon}" Stretch="Uniform" />
