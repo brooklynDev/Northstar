@@ -53,7 +53,15 @@ public partial class MainWindow : Window
         InitializeComponent();
         SetPreviewPaneVisible(false);
 
-        Opened += (_, _) => ExplorerList.Focus();
+        Opened += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel viewModel)
+            {
+                ApplyColorTheme(viewModel.SelectedTheme);
+            }
+
+            ExplorerList.Focus();
+        };
         Closing += (_, _) =>
         {
             if (DataContext is MainWindowViewModel viewModel)
@@ -69,5 +77,10 @@ public partial class MainWindow : Window
         AddHandler(KeyDownEvent, Window_OnPreviewKeyDown, RoutingStrategies.Tunnel);
         AddHandler(TextInputEvent, Window_OnPreviewTextInput, RoutingStrategies.Tunnel);
         SetEmbeddedTerminalVisible(false);
+
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            ApplyColorTheme(viewModel.SelectedTheme);
+        }
     }
 }

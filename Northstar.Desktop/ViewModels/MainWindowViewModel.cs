@@ -47,6 +47,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private string defaultStartFolder = string.Empty;
 
     [ObservableProperty]
+    private string selectedTheme = "Midnight";
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NameSortIndicator))]
     [NotifyPropertyChangedFor(nameof(TypeSortIndicator))]
     [NotifyPropertyChangedFor(nameof(SizeSortIndicator))]
@@ -70,6 +73,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<FileSystemItemViewModel> SelectedExplorerItems { get; } = [];
 
+    public IReadOnlyList<string> AvailableThemes { get; } =
+    [
+        "Midnight",
+        "Graphite",
+        "One Dark",
+        "Emerald Night",
+        "Ocean Deep",
+        "Daylight",
+    ];
+
     public bool IsPathReadMode => !IsPathEditMode;
 
     public string NameSortIndicator => BuildSortIndicator("Name");
@@ -85,6 +98,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var settings = _settingsStore.Load();
         ShowHiddenFiles = settings.ShowHiddenFiles;
         DefaultStartFolder = settings.DefaultStartFolder ?? string.Empty;
+        SelectedTheme = string.IsNullOrWhiteSpace(settings.ThemeName) ? "Midnight" : settings.ThemeName;
 
         BuildQuickAccess();
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -104,6 +118,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnDefaultStartFolderChanged(string value)
     {
+        SaveSettings();
+    }
+
+    partial void OnSelectedThemeChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
         SaveSettings();
     }
 }

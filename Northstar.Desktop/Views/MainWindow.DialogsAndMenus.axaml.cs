@@ -297,7 +297,7 @@ public partial class MainWindow
         {
             Title = "Preferences",
             Width = 520,
-            Height = 240,
+            Height = 320,
             CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             ExtendClientAreaToDecorationsHint = false,
@@ -324,6 +324,15 @@ public partial class MainWindow
         };
         useCurrentButton.Click += (_, _) => startFolderBox.Text = viewModel.CurrentPath;
 
+        var themeComboBox = new ComboBox
+        {
+            ItemsSource = viewModel.AvailableThemes,
+            SelectedItem = viewModel.AvailableThemes.Contains(settings.ThemeName)
+                ? settings.ThemeName
+                : viewModel.SelectedTheme,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
         var cancelButton = new Button
         {
             Content = "Cancel",
@@ -341,7 +350,9 @@ public partial class MainWindow
         {
             viewModel.ApplyPreferences(
                 showHiddenCheck.IsChecked == true,
-                startFolderBox.Text);
+                startFolderBox.Text,
+                themeComboBox.SelectedItem as string ?? settings.ThemeName);
+            ApplyColorTheme(viewModel.SelectedTheme);
             dialog.Close();
         };
 
@@ -366,6 +377,12 @@ public partial class MainWindow
                     },
                     startFolderBox,
                     useCurrentButton,
+                    new TextBlock
+                    {
+                        Text = "Color theme",
+                        Margin = new Thickness(0, 10, 0, 0),
+                    },
+                    themeComboBox,
                     new StackPanel
                     {
                         Orientation = Orientation.Horizontal,

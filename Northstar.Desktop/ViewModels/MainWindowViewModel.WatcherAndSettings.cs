@@ -15,13 +15,15 @@ public partial class MainWindowViewModel
         {
             ShowHiddenFiles = ShowHiddenFiles,
             DefaultStartFolder = DefaultStartFolder,
+            ThemeName = SelectedTheme,
         };
     }
 
-    public void ApplyPreferences(bool showHidden, string? defaultStartFolderValue)
+    public void ApplyPreferences(bool showHidden, string? defaultStartFolderValue, string? themeName)
     {
         ShowHiddenFiles = showHidden;
         DefaultStartFolder = defaultStartFolderValue?.Trim() ?? string.Empty;
+        SelectedTheme = string.IsNullOrWhiteSpace(themeName) ? "Midnight" : themeName.Trim();
         SaveSettings();
         OpenDirectory(CurrentPath, addToHistory: false);
     }
@@ -169,6 +171,7 @@ public partial class MainWindowViewModel
         {
             ShowHiddenFiles = ShowHiddenFiles,
             DefaultStartFolder = DefaultStartFolder,
+            ThemeName = SelectedTheme,
         });
     }
 

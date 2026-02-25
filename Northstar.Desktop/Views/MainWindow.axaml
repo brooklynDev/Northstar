@@ -19,34 +19,91 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <Window.Resources>
+        <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#10131A" Offset="0" />
+            <GradientStop Color="#0A0D12" Offset="1" />
+        </LinearGradientBrush>
+
+        <SolidColorBrush x:Key="ChromeBorderBrush" Color="#2A3140" />
+        <SolidColorBrush x:Key="ChromeBackgroundBrush" Color="#131923" />
+        <SolidColorBrush x:Key="ToolbarBackgroundBrush" Color="#1A2231" />
+        <SolidColorBrush x:Key="ToolbarBorderBrush" Color="#283246" />
+
+        <SolidColorBrush x:Key="NavBackgroundBrush" Color="#222E42" />
+        <SolidColorBrush x:Key="NavHoverBackgroundBrush" Color="#2A3750" />
+        <SolidColorBrush x:Key="NavPressedBackgroundBrush" Color="#32415E" />
+        <SolidColorBrush x:Key="NavForegroundBrush" Color="#CED8E8" />
+        <SolidColorBrush x:Key="NavBorderBrush" Color="#3A465D" />
+
+        <SolidColorBrush x:Key="SideItemForegroundBrush" Color="#D4DDF0" />
+        <SolidColorBrush x:Key="SideItemHoverBackgroundBrush" Color="#202B3D" />
+        <SolidColorBrush x:Key="SideItemHoverBorderBrush" Color="#2E3B54" />
+
+        <SolidColorBrush x:Key="CrumbForegroundBrush" Color="#DCE6F8" />
+        <SolidColorBrush x:Key="CrumbHoverBackgroundBrush" Color="#223048" />
+        <SolidColorBrush x:Key="CrumbSeparatorBrush" Color="#71839E" />
+
+        <SolidColorBrush x:Key="PathSurfaceBackgroundBrush" Color="#0E131D" />
+        <SolidColorBrush x:Key="PathSurfaceBorderBrush" Color="#2A344A" />
+
+        <SolidColorBrush x:Key="ColumnHeaderForegroundBrush" Color="#97A2B7" />
+        <SolidColorBrush x:Key="ColumnHeaderHoverForegroundBrush" Color="#C7D4EB" />
+
+        <SolidColorBrush x:Key="TerminalToggleBackgroundBrush" Color="#1C2738" />
+        <SolidColorBrush x:Key="TerminalToggleHoverBackgroundBrush" Color="#233149" />
+        <SolidColorBrush x:Key="TerminalToggleForegroundBrush" Color="#CFE0F6" />
+        <SolidColorBrush x:Key="TerminalToggleBorderBrush" Color="#35445D" />
+
+        <SolidColorBrush x:Key="EmbeddedTerminalBackgroundBrush" Color="#08101A" />
+        <SolidColorBrush x:Key="EmbeddedTerminalBorderBrush" Color="#283246" />
+        <SolidColorBrush x:Key="TerminalOutputForegroundBrush" Color="#D7E6FF" />
+        <SolidColorBrush x:Key="TerminalInputBackgroundBrush" Color="#0A111D" />
+        <SolidColorBrush x:Key="TerminalInputForegroundBrush" Color="#E8F2FF" />
+        <SolidColorBrush x:Key="TerminalInputBorderBrush" Color="#1F3047" />
+
+        <SolidColorBrush x:Key="PreviewPaneBackgroundBrush" Color="#0D1522" />
+        <SolidColorBrush x:Key="PreviewPaneBorderBrush" Color="#2A344A" />
+        <SolidColorBrush x:Key="PreviewTextBackgroundBrush" Color="#0A111C" />
+        <SolidColorBrush x:Key="PreviewTextBorderBrush" Color="#2A344A" />
+        <SolidColorBrush x:Key="PreviewTextForegroundBrush" Color="#D6E4FA" />
+
+        <SolidColorBrush x:Key="ListItemBackgroundBrush" Color="#121A28" />
+        <SolidColorBrush x:Key="ListItemHoverBackgroundBrush" Color="#1C273A" />
+        <SolidColorBrush x:Key="ListItemSelectedBackgroundBrush" Color="#28405B" />
+        <SolidColorBrush x:Key="ListItemHoverNameForegroundBrush" Color="#FFFFFF" />
+
+        <SolidColorBrush x:Key="SidebarPaneBackgroundBrush" Color="#161E2D" />
+        <SolidColorBrush x:Key="SidebarPaneBorderBrush" Color="#29334A" />
+        <SolidColorBrush x:Key="ExplorerPaneBackgroundBrush" Color="#101823" />
+        <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#0F1623" />
+        <SolidColorBrush x:Key="StatusBarBorderBrush" Color="#283246" />
+        <SolidColorBrush x:Key="StatusTextForegroundBrush" Color="#6F84A4" />
+    </Window.Resources>
+
     <Window.Styles>
         <Style Selector="Window">
-            <Setter Property="Background">
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#10131A" Offset="0" />
-                    <GradientStop Color="#0A0D12" Offset="1" />
-                </LinearGradientBrush>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
         </Style>
 
         <Style Selector="Border.chrome">
             <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="BorderBrush" Value="#2A3140" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ChromeBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Background" Value="#131923" />
+            <Setter Property="Background" Value="{DynamicResource ChromeBackgroundBrush}" />
         </Style>
 
         <Style Selector="Border.toolbar">
-            <Setter Property="Background" Value="#1A2231" />
-            <Setter Property="BorderBrush" Value="#283246" />
+            <Setter Property="Background" Value="{DynamicResource ToolbarBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolbarBorderBrush}" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
             <Setter Property="Padding" Value="14,12" />
         </Style>
 
         <Style Selector="Button.nav">
-            <Setter Property="Background" Value="#222E42" />
-            <Setter Property="Foreground" Value="#CED8E8" />
-            <Setter Property="BorderBrush" Value="#3A465D" />
+            <Setter Property="Background" Value="{DynamicResource NavBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource NavForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource NavBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="9" />
             <Setter Property="Padding" Value="11,7" />
@@ -57,11 +114,11 @@
         </Style>
 
         <Style Selector="Button.nav:pointerover">
-            <Setter Property="Background" Value="#2A3750" />
+            <Setter Property="Background" Value="{DynamicResource NavHoverBackgroundBrush}" />
         </Style>
 
         <Style Selector="Button.nav:pressed">
-            <Setter Property="Background" Value="#32415E" />
+            <Setter Property="Background" Value="{DynamicResource NavPressedBackgroundBrush}" />
         </Style>
 
         <Style Selector="Button.sideItemButton">
@@ -71,14 +128,14 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="10,8" />
             <Setter Property="CornerRadius" Value="9" />
-            <Setter Property="Foreground" Value="#D4DDF0" />
+            <Setter Property="Foreground" Value="{DynamicResource SideItemForegroundBrush}" />
             <Setter Property="Focusable" Value="False" />
             <Setter Property="IsTabStop" Value="False" />
         </Style>
 
         <Style Selector="Button.sideItemButton:pointerover">
-            <Setter Property="Background" Value="#202B3D" />
-            <Setter Property="BorderBrush" Value="#2E3B54" />
+            <Setter Property="Background" Value="{DynamicResource SideItemHoverBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SideItemHoverBorderBrush}" />
         </Style>
 
         <Style Selector="Button.crumbButton">
@@ -87,17 +144,17 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="6,4" />
             <Setter Property="CornerRadius" Value="7" />
-            <Setter Property="Foreground" Value="#DCE6F8" />
+            <Setter Property="Foreground" Value="{DynamicResource CrumbForegroundBrush}" />
             <Setter Property="FontSize" Value="13" />
         </Style>
 
         <Style Selector="Button.crumbButton:pointerover">
-            <Setter Property="Background" Value="#223048" />
+            <Setter Property="Background" Value="{DynamicResource CrumbHoverBackgroundBrush}" />
         </Style>
 
         <Style Selector="Border.pathSurface">
-            <Setter Property="Background" Value="#0E131D" />
-            <Setter Property="BorderBrush" Value="#2A344A" />
+            <Setter Property="Background" Value="{DynamicResource PathSurfaceBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PathSurfaceBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="7,5" />
@@ -108,7 +165,7 @@
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Foreground" Value="#97A2B7" />
+            <Setter Property="Foreground" Value="{DynamicResource ColumnHeaderForegroundBrush}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Focusable" Value="False" />
@@ -116,13 +173,13 @@
         </Style>
 
         <Style Selector="Button.columnHeader:pointerover">
-            <Setter Property="Foreground" Value="#C7D4EB" />
+            <Setter Property="Foreground" Value="{DynamicResource ColumnHeaderHoverForegroundBrush}" />
         </Style>
 
         <Style Selector="Button.terminalToggle">
-            <Setter Property="Background" Value="#1C2738" />
-            <Setter Property="Foreground" Value="#CFE0F6" />
-            <Setter Property="BorderBrush" Value="#35445D" />
+            <Setter Property="Background" Value="{DynamicResource TerminalToggleBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TerminalToggleForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TerminalToggleBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="Padding" Value="10,6" />
@@ -131,18 +188,18 @@
         </Style>
 
         <Style Selector="Button.terminalToggle:pointerover">
-            <Setter Property="Background" Value="#233149" />
+            <Setter Property="Background" Value="{DynamicResource TerminalToggleHoverBackgroundBrush}" />
         </Style>
 
         <Style Selector="Border.embeddedTerminal">
-            <Setter Property="Background" Value="#08101A" />
-            <Setter Property="BorderBrush" Value="#283246" />
+            <Setter Property="Background" Value="{DynamicResource EmbeddedTerminalBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource EmbeddedTerminalBorderBrush}" />
             <Setter Property="BorderThickness" Value="1,1,0,0" />
             <Setter Property="Padding" Value="10,8,10,10" />
         </Style>
 
         <Style Selector="TextBlock.terminalOutput">
-            <Setter Property="Foreground" Value="#D7E6FF" />
+            <Setter Property="Foreground" Value="{DynamicResource TerminalOutputForegroundBrush}" />
             <Setter Property="FontFamily" Value="Menlo, Monaco, Courier New" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Focusable" Value="False" />
@@ -150,9 +207,9 @@
         </Style>
 
         <Style Selector="TextBox.terminalInput">
-            <Setter Property="Background" Value="#0A111D" />
-            <Setter Property="Foreground" Value="#E8F2FF" />
-            <Setter Property="BorderBrush" Value="#1F3047" />
+            <Setter Property="Background" Value="{DynamicResource TerminalInputBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TerminalInputForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource TerminalInputBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
             <Setter Property="FontFamily" Value="Menlo, Monaco, Courier New" />
@@ -161,40 +218,40 @@
         </Style>
 
         <Style Selector="Border.previewPane">
-            <Setter Property="Background" Value="#0D1522" />
-            <Setter Property="BorderBrush" Value="#2A344A" />
+            <Setter Property="Background" Value="{DynamicResource PreviewPaneBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PreviewPaneBorderBrush}" />
             <Setter Property="BorderThickness" Value="1,0,0,0" />
             <Setter Property="Padding" Value="14,12" />
         </Style>
 
         <Style Selector="TextBox.previewText">
-            <Setter Property="Background" Value="#0A111C" />
-            <Setter Property="BorderBrush" Value="#2A344A" />
+            <Setter Property="Background" Value="{DynamicResource PreviewTextBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PreviewTextBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Foreground" Value="#D6E4FA" />
+            <Setter Property="Foreground" Value="{DynamicResource PreviewTextForegroundBrush}" />
             <Setter Property="IsReadOnly" Value="True" />
             <Setter Property="AcceptsReturn" Value="True" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
         <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover TextBlock.fileName">
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{DynamicResource ListItemHoverNameForegroundBrush}" />
         </Style>
 
         <Style Selector="ListBox#ExplorerList ListBoxItem">
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0,0,0,1" />
-            <Setter Property="Background" Value="#121A28" />
+            <Setter Property="Background" Value="{DynamicResource ListItemBackgroundBrush}" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
 
         <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover">
-            <Setter Property="Background" Value="#1C273A" />
+            <Setter Property="Background" Value="{DynamicResource ListItemHoverBackgroundBrush}" />
         </Style>
 
         <Style Selector="ListBox#ExplorerList ListBoxItem:selected">
-            <Setter Property="Background" Value="#28405B" />
+            <Setter Property="Background" Value="{DynamicResource ListItemSelectedBackgroundBrush}" />
         </Style>
     </Window.Styles>
 
@@ -230,7 +287,7 @@
                                                             CommandParameter="{Binding}"
                                                             Content="{Binding Label}" />
                                                     <TextBlock Text="›"
-                                                               Foreground="#71839E"
+                                                               Foreground="{DynamicResource CrumbSeparatorBrush}"
                                                                VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </DataTemplate>
@@ -245,20 +302,20 @@
                                  Text="{Binding PathInputText, UpdateSourceTrigger=PropertyChanged}"
                                  KeyDown="PathEditBox_OnKeyDown"
                                  LostFocus="PathEditBox_OnLostFocus"
-                                 Background="#0E131D"
-                                 BorderBrush="#2A344A"
+                                 Background="{DynamicResource PathSurfaceBackgroundBrush}"
+                                 BorderBrush="{DynamicResource PathSurfaceBorderBrush}"
                                  BorderThickness="1"
                                  CornerRadius="8"
-                                 Foreground="#E8F0FF"
+                                 Foreground="{DynamicResource NavForegroundBrush}"
                                  Padding="10,7" />
 
                         <TextBox Watermark="Search this folder"
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Background="#0E131D"
-                                 BorderBrush="#2A344A"
+                                 Background="{DynamicResource PathSurfaceBackgroundBrush}"
+                                 BorderBrush="{DynamicResource PathSurfaceBorderBrush}"
                                  BorderThickness="1"
                                  CornerRadius="8"
-                                 Foreground="#E8F0FF"
+                                 Foreground="{DynamicResource NavForegroundBrush}"
                                  Padding="10,7" />
                     </StackPanel>
 
@@ -276,11 +333,11 @@
             </Border>
 
             <Grid Grid.Row="1" x:Name="MainContentGrid" ColumnDefinitions="290,*,360">
-                <Border Background="#161E2D" BorderBrush="#29334A" BorderThickness="0,0,1,0" Padding="14,12">
+                <Border Background="{DynamicResource SidebarPaneBackgroundBrush}" BorderBrush="{DynamicResource SidebarPaneBorderBrush}" BorderThickness="0,0,1,0" Padding="14,12">
                     <ScrollViewer>
                         <StackPanel Spacing="16">
                             <StackPanel Spacing="8">
-                                <TextBlock Text="Quick Access" Foreground="#9EA9BD" FontWeight="SemiBold" />
+                                <TextBlock Text="Quick Access" Foreground="{DynamicResource ColumnHeaderForegroundBrush}" FontWeight="SemiBold" />
                                 <ItemsControl ItemsSource="{Binding QuickAccessItems}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:QuickAccessItemViewModel">
@@ -288,7 +345,7 @@
                                                     Command="{Binding $parent[Window].DataContext.OpenQuickAccessCommand}"
                                                     CommandParameter="{Binding}">
                                                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                    <TextBlock Text="{Binding Glyph}" Foreground="#8DB0E2" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Glyph}" Foreground="{DynamicResource CrumbSeparatorBrush}" VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="1"
                                                                Text="{Binding Label}"
                                                                TextTrimming="CharacterEllipsis"
@@ -301,7 +358,7 @@
                             </StackPanel>
 
                             <StackPanel Spacing="8">
-                                <TextBlock Text="This Folder" Foreground="#9EA9BD" FontWeight="SemiBold" />
+                                <TextBlock Text="This Folder" Foreground="{DynamicResource ColumnHeaderForegroundBrush}" FontWeight="SemiBold" />
                                 <ItemsControl ItemsSource="{Binding SidebarFolders}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:QuickAccessItemViewModel">
@@ -309,7 +366,7 @@
                                                     Command="{Binding $parent[Window].DataContext.OpenQuickAccessCommand}"
                                                     CommandParameter="{Binding}">
                                                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                    <TextBlock Text="{Binding Glyph}" Foreground="#95B8EA" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Glyph}" Foreground="{DynamicResource CrumbSeparatorBrush}" VerticalAlignment="Center" />
                                                     <TextBlock Grid.Column="1"
                                                                Text="{Binding Label}"
                                                                TextTrimming="CharacterEllipsis"
@@ -324,7 +381,7 @@
                     </ScrollViewer>
                 </Border>
 
-                <Border Grid.Column="1" Background="#101823" Padding="0,8,0,0">
+                <Border Grid.Column="1" Background="{DynamicResource ExplorerPaneBackgroundBrush}" Padding="0,8,0,0">
                     <Grid RowDefinitions="Auto,*">
                         <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="16,0,16,8">
                             <Button Classes="columnHeader"
@@ -426,13 +483,13 @@
                                             </Grid>
                                             <TextBlock Classes="fileName"
                                                        Text="{Binding Name}"
-                                                       Foreground="#CFE2FF"
+                                                       Foreground="{DynamicResource NavForegroundBrush}"
                                                        VerticalAlignment="Center" />
                                         </StackPanel>
 
-                                        <TextBlock Grid.Column="1" Text="{Binding Type}" Foreground="#C8D3E6" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="2" Text="{Binding Size}" Foreground="#C8D3E6" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="3" Text="{Binding Modified}" Foreground="#C8D3E6" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Type}" Foreground="{DynamicResource ColumnHeaderForegroundBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Size}" Foreground="{DynamicResource ColumnHeaderForegroundBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Modified}" Foreground="{DynamicResource ColumnHeaderForegroundBrush}" VerticalAlignment="Center" />
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -444,14 +501,14 @@
                     <Grid RowDefinitions="Auto,Auto,*">
                         <TextBlock x:Name="PreviewTitle"
                                    Text="Quick Preview"
-                                   Foreground="#E5EEFF"
+                                   Foreground="{DynamicResource NavForegroundBrush}"
                                    FontSize="16"
                                    FontWeight="SemiBold" />
 
                         <TextBlock Grid.Row="1"
                                    x:Name="PreviewMeta"
                                    Margin="0,4,0,10"
-                                   Foreground="#8FA2BF"
+                                   Foreground="{DynamicResource ColumnHeaderForegroundBrush}"
                                    FontSize="12"
                                    Text="Press Space to toggle preview." />
 
@@ -464,7 +521,7 @@
                                 <TextBlock x:Name="PreviewMessageText"
                                            Margin="14"
                                            Text="Select a file and press Space."
-                                           Foreground="#9EB1CC"
+                                           Foreground="{DynamicResource ColumnHeaderForegroundBrush}"
                                            TextWrapping="Wrap" />
                             </Border>
 
@@ -486,10 +543,10 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="2" Background="#0F1623" BorderBrush="#283246" BorderThickness="1,1,0,0" Padding="10,8">
+            <Border Grid.Row="2" Background="{DynamicResource StatusBarBackgroundBrush}" BorderBrush="{DynamicResource StatusBarBorderBrush}" BorderThickness="1,1,0,0" Padding="10,8">
                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                     <TextBlock Text="Northstar Explorer"
-                               Foreground="#6F84A4"
+                               Foreground="{DynamicResource StatusTextForegroundBrush}"
                                VerticalAlignment="Center"
                                FontSize="12" />
                     <Button Grid.Column="1"
@@ -505,12 +562,12 @@
                 <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
                     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
                         <TextBlock Text="Integrated Terminal"
-                                   Foreground="#D8E5FA"
+                                   Foreground="{DynamicResource NavForegroundBrush}"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1"
                                    x:Name="TerminalShellLabel"
-                                   Foreground="#7F97BA"
+                                   Foreground="{DynamicResource ColumnHeaderForegroundBrush}"
                                    VerticalAlignment="Center"
                                    FontSize="12" />
                         <Button Grid.Column="2"
@@ -527,8 +584,8 @@
 
                     <ScrollViewer Grid.Row="1"
                                   x:Name="TerminalOutputScrollViewer"
-                                  Background="#050A12"
-                                  BorderBrush="#1F3047"
+                                  Background="{DynamicResource PathSurfaceBackgroundBrush}"
+                                  BorderBrush="{DynamicResource TerminalInputBorderBrush}"
                                   BorderThickness="1"
                                   CornerRadius="8"
                                   HorizontalScrollBarVisibility="Auto"
@@ -542,7 +599,7 @@
 
                     <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
                         <TextBlock Text=">"
-                                   Foreground="#9EB3D1"
+                                   Foreground="{DynamicResource CrumbSeparatorBrush}"
                                    VerticalAlignment="Center"
                                    FontFamily="Menlo, Monaco, Courier New" />
                         <TextBox Grid.Column="1"
