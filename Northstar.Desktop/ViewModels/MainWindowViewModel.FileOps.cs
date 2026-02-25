@@ -84,6 +84,26 @@ public partial class MainWindowViewModel
         return targetPath;
     }
 
+    private static bool EntryExists(string path)
+        => File.Exists(path) || Directory.Exists(path);
+
+    private static bool PathsEqual(string left, string right)
+        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+
+    private static void DeleteEntry(string fullPath)
+    {
+        if (Directory.Exists(fullPath))
+        {
+            Directory.Delete(fullPath, recursive: true);
+            return;
+        }
+
+        if (File.Exists(fullPath))
+        {
+            File.Delete(fullPath);
+        }
+    }
+
     private static void MoveToTrash(string fullPath)
     {
         if (!OperatingSystem.IsMacOS())

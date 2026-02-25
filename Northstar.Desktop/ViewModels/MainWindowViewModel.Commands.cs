@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Northstar.Desktop.ViewModels;
 
@@ -227,14 +228,22 @@ public partial class MainWindowViewModel
     private bool CanPaste() => _clipboardPaths.Count > 0;
 
     [RelayCommand(CanExecute = nameof(CanPaste))]
-    private void Paste()
+    private async Task Paste()
+    {
+        _ = await PasteWithConflictResolutionAsync(
+            _ => Task.FromResult(new PasteConflictResolution(PasteConflictAction.KeepBoth, ApplyToAll: false)));
+    }
+
+    public async Task<bool> PasteWithConflictResolutionAsync(Func<PasteConflictRequest, Task<PasteConflictResolution>> resolveConflictAsync)
     {
         if (_clipboardPaths.Count == 0 || !Directory.Exists(CurrentPath))
         {
-            return;
+            return false;
         }
 
         var allSucceeded = true;
+        PasteConflictAction? applyToAllAction = null;
+
         foreach (var sourcePath in _clipboardPaths.ToList())
         {
             try
@@ -246,7 +255,45 @@ public partial class MainWindowViewModel
                     continue;
                 }
 
-                var destinationPath = GetUniqueDestinationPath(Path.Combine(CurrentPath, sourceName));
+                var baseDestinationPath = Path.Combine(CurrentPath, sourceName);
+                var destinationPath = baseDestinationPath;
+
+                if (EntryExists(destinationPath))
+                {
+                    var action = applyToAllAction;
+                    if (action is null)
+                    {
+                        var request = new PasteConflictRequest(sourcePath, destinationPath, _clipboardIsCut);
+                        var decision = await resolveConflictAsync(request);
+                        action = decision.Action;
+                        if (decision.ApplyToAll)
+                        {
+                            applyToAllAction = action;
+                        }
+                    }
+
+                    switch (action)
+                    {
+                        case PasteConflictAction.Skip:
+                            continue;
+                        case PasteConflictAction.KeepBoth:
+                            destinationPath = GetUniqueDestinationPath(baseDestinationPath);
+                            break;
+                        case PasteConflictAction.Replace:
+                            if (!PathsEqual(sourcePath, destinationPath))
+                            {
+                                DeleteEntry(destinationPath);
+                            }
+                            else
+                            {
+                                destinationPath = GetUniqueDestinationPath(baseDestinationPath);
+                            }
+                            break;
+                        default:
+                            destinationPath = GetUniqueDestinationPath(baseDestinationPath);
+                            break;
+                    }
+                }
 
                 if (_clipboardIsCut)
                 {
@@ -271,6 +318,7 @@ public partial class MainWindowViewModel
         }
 
         OpenDirectory(CurrentPath, addToHistory: false);
+        return allSucceeded;
     }
 
     [RelayCommand]
@@ -553,3 +601,17 @@ public partial class MainWindowViewModel
     }
 
 }
+
+public enum PasteConflictAction
+{
+    Replace,
+    KeepBoth,
+    Skip,
+}
+
+public readonly record struct PasteConflictResolution(PasteConflictAction Action, bool ApplyToAll);
+
+public readonly record struct PasteConflictRequest(
+    string SourcePath,
+    string DestinationPath,
+    bool IsCutOperation);

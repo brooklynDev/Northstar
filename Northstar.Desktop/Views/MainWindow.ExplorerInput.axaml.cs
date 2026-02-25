@@ -132,7 +132,7 @@ public partial class MainWindow
                 {
                     if (viewModel.PasteCommand.CanExecute(null))
                     {
-                        viewModel.PasteCommand.Execute(null);
+                        _ = PasteWithConflictWorkflowAsync(viewModel);
                     }
 
                     e.Handled = true;

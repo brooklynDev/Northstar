@@ -200,7 +200,7 @@ public partial class MainWindow
         viewModel.CopyPathCommand.Execute((sender as MenuItem)?.Tag as FileSystemItemViewModel);
     }
 
-    private void PasteMenu_OnClick(object? sender, RoutedEventArgs e)
+    private async void PasteMenu_OnClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel)
         {
@@ -209,9 +209,12 @@ public partial class MainWindow
 
         if (viewModel.PasteCommand.CanExecute(null))
         {
-            viewModel.PasteCommand.Execute(null);
+            await PasteWithConflictWorkflowAsync(viewModel);
         }
     }
+
+    private Task<bool> PasteWithConflictWorkflowAsync(MainWindowViewModel viewModel)
+        => viewModel.PasteWithConflictResolutionAsync(ShowPasteConflictDialogAsync);
 
     private async void NewFolderMenu_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -747,5 +750,110 @@ public partial class MainWindow
         }
 
         return fallback;
+    }
+
+    private async Task<PasteConflictResolution> ShowPasteConflictDialogAsync(PasteConflictRequest request)
+    {
+        var result = new PasteConflictResolution(PasteConflictAction.KeepBoth, ApplyToAll: false);
+        var operationLabel = request.IsCutOperation ? "move" : "copy";
+        var itemName = Path.GetFileName(request.SourcePath.TrimEnd(Path.DirectorySeparatorChar));
+
+        var dialog = new Window
+        {
+            Title = "Name Conflict",
+            Width = 560,
+            Height = 240,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            ExtendClientAreaToDecorationsHint = false,
+            Background = GetThemeBrush("WindowBackgroundBrush", new SolidColorBrush(Color.Parse("#10131A"))),
+            Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
+        };
+
+        var applyToAllCheck = new CheckBox
+        {
+            Content = "Apply this choice to all conflicts",
+            Margin = new Thickness(0, 8, 0, 0),
+            Foreground = GetThemeBrush("ColumnHeaderForegroundBrush", Brushes.White),
+        };
+
+        var replaceButton = new Button
+        {
+            Content = "Replace",
+            MinWidth = 90,
+            Margin = new Thickness(0, 0, 8, 0),
+        };
+        replaceButton.Click += (_, _) =>
+        {
+            result = new PasteConflictResolution(PasteConflictAction.Replace, applyToAllCheck.IsChecked == true);
+            dialog.Close();
+        };
+
+        var keepBothButton = new Button
+        {
+            Content = "Keep Both",
+            MinWidth = 96,
+            Margin = new Thickness(0, 0, 8, 0),
+        };
+        keepBothButton.Click += (_, _) =>
+        {
+            result = new PasteConflictResolution(PasteConflictAction.KeepBoth, applyToAllCheck.IsChecked == true);
+            dialog.Close();
+        };
+
+        var skipButton = new Button
+        {
+            Content = "Skip",
+            MinWidth = 84,
+        };
+        skipButton.Click += (_, _) =>
+        {
+            result = new PasteConflictResolution(PasteConflictAction.Skip, applyToAllCheck.IsChecked == true);
+            dialog.Close();
+        };
+
+        dialog.Content = new Border
+        {
+            Padding = new Thickness(14),
+            Background = GetThemeBrush("ExplorerPaneBackgroundBrush", new SolidColorBrush(Color.Parse("#121A28"))),
+            BorderBrush = GetThemeBrush("ChromeBorderBrush", new SolidColorBrush(Color.Parse("#2A3140"))),
+            BorderThickness = new Thickness(1),
+            Child = new StackPanel
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = $"A file or folder named \"{itemName}\" already exists in this location.",
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = GetThemeBrush("NavForegroundBrush", Brushes.White),
+                        FontWeight = FontWeight.SemiBold,
+                    },
+                    new TextBlock
+                    {
+                        Text = $"Choose what to do with this {operationLabel} operation.",
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = GetThemeBrush("ColumnHeaderForegroundBrush", Brushes.White),
+                    },
+                    applyToAllCheck,
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Margin = new Thickness(0, 14, 0, 0),
+                        Children =
+                        {
+                            skipButton,
+                            keepBothButton,
+                            replaceButton,
+                        },
+                    },
+                },
+            },
+        };
+
+        await dialog.ShowDialog(this);
+        return result;
     }
 }
