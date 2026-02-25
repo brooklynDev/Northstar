@@ -53,6 +53,7 @@ public partial class MainWindow : Window
         Opened += (_, _) =>
         {
             EnsureExplorerColumnWidthsInitialized();
+            AttachExplorerHorizontalScrollSync();
 
             if (DataContext is MainWindowViewModel viewModel)
             {
@@ -71,6 +72,7 @@ public partial class MainWindow : Window
 
             _previewBitmap?.Dispose();
             _previewBitmap = null;
+            DetachExplorerHorizontalScrollSync();
             ShutdownAllEmbeddedTerminals();
             DetachViewModelSubscriptions();
         };

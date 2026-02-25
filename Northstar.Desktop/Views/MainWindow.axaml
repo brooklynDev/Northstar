@@ -554,7 +554,8 @@
                                  KeyDown="ExplorerList_OnKeyDown"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 Margin="8,0,8,8">
+                                 Margin="8,0,8,8"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <ListBox.ContextMenu>
                                 <ContextMenu Opening="ExplorerContextMenu_OnOpening">
                                     <MenuItem Header="Open" Click="OpenItemMenu_OnClick" />
