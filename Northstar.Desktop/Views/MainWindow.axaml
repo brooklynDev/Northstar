@@ -1,0 +1,232 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Northstar.Desktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="1280"
+        d:DesignHeight="820"
+        x:Class="Northstar.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Northstar Explorer"
+        Width="1280"
+        Height="820"
+        MinWidth="980"
+        MinHeight="640"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="Window">
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#10131A" Offset="0" />
+                    <GradientStop Color="#0A0D12" Offset="1" />
+                </LinearGradientBrush>
+            </Setter>
+        </Style>
+
+        <Style Selector="Border.chrome">
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="BorderBrush" Value="#2A3140" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#131923" />
+        </Style>
+
+        <Style Selector="Border.toolbar">
+            <Setter Property="Background" Value="#1A2231" />
+            <Setter Property="BorderBrush" Value="#283246" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="14,12" />
+        </Style>
+
+        <Style Selector="Button.nav">
+            <Setter Property="Background" Value="#222E42" />
+            <Setter Property="Foreground" Value="#CED8E8" />
+            <Setter Property="BorderBrush" Value="#3A465D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="MinWidth" Value="36" />
+            <Setter Property="MinHeight" Value="32" />
+        </Style>
+
+        <Style Selector="Button.nav:pointerover">
+            <Setter Property="Background" Value="#2A3750" />
+        </Style>
+
+        <Style Selector="Button.nav:pressed">
+            <Setter Property="Background" Value="#32415E" />
+        </Style>
+
+        <Style Selector="Button.sideItemButton">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Foreground" Value="#D4DDF0" />
+        </Style>
+
+        <Style Selector="Button.sideItemButton:pointerover">
+            <Setter Property="Background" Value="#202B3D" />
+            <Setter Property="BorderBrush" Value="#2E3B54" />
+        </Style>
+
+        <Style Selector="Button.openName">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="#CFE2FF" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+
+        <Style Selector="Button.openName:pointerover">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+
+        <Style Selector="ListBox#ExplorerList ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,1" />
+            <Setter Property="Background" Value="#121A28" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+
+        <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover">
+            <Setter Property="Background" Value="#1C273A" />
+        </Style>
+
+        <Style Selector="ListBox#ExplorerList ListBoxItem:selected">
+            <Setter Property="Background" Value="#28405B" />
+        </Style>
+    </Window.Styles>
+
+    <Border Classes="chrome" Margin="14">
+        <Grid RowDefinitions="Auto,*">
+            <Border Classes="toolbar">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="nav" Command="{Binding GoBackCommand}" Content="←" />
+                        <Button Classes="nav" Command="{Binding GoForwardCommand}" Content="→" />
+                        <Button Classes="nav" Command="{Binding GoUpCommand}" Content="↑" />
+                        <Button Classes="nav" Command="{Binding RefreshCommand}" Content="↻" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock Text="{Binding CurrentPath}" Foreground="#DCE6F8" FontSize="15" TextTrimming="CharacterEllipsis" />
+                        <TextBox Watermark="Search this folder"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0E131D"
+                                 BorderBrush="#2A344A"
+                                 BorderThickness="1"
+                                 CornerRadius="8"
+                                 Foreground="#E8F0FF"
+                                 Padding="10,7" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Classes="nav"
+                            Command="{Binding OpenSelectedCommand}"
+                            Content="Open Selected"
+                            MinWidth="120" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" ColumnDefinitions="290,*">
+                <Border Background="#161E2D" BorderBrush="#29334A" BorderThickness="0,0,1,0" Padding="14,12">
+                    <ScrollViewer>
+                        <StackPanel Spacing="16">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Quick Access" Foreground="#9EA9BD" FontWeight="SemiBold" />
+                                <ItemsControl ItemsSource="{Binding QuickAccessItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:QuickAccessItemViewModel">
+                                            <Button Classes="sideItemButton"
+                                                    Command="{Binding $parent[Window].DataContext.OpenQuickAccessCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                    <TextBlock Text="{Binding Glyph}" Foreground="#8DB0E2" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Label}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="This Folder" Foreground="#9EA9BD" FontWeight="SemiBold" />
+                                <ItemsControl ItemsSource="{Binding SidebarFolders}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:QuickAccessItemViewModel">
+                                            <Button Classes="sideItemButton"
+                                                    Command="{Binding $parent[Window].DataContext.OpenQuickAccessCommand}"
+                                                    CommandParameter="{Binding}">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                    <TextBlock Text="{Binding Glyph}" Foreground="#95B8EA" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Label}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <Border Grid.Column="1" Background="#101823" Padding="0,8,0,0">
+                    <Grid RowDefinitions="Auto,*">
+                        <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="16,0,16,8">
+                            <TextBlock Text="Name" Foreground="#97A2B7" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="Type" Foreground="#97A2B7" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="Size" Foreground="#97A2B7" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="3" Text="Modified" Foreground="#97A2B7" FontWeight="SemiBold" />
+                        </Grid>
+
+                        <ListBox Grid.Row="1"
+                                 x:Name="ExplorerList"
+                                 ItemsSource="{Binding ExplorerItems}"
+                                 SelectedItem="{Binding SelectedExplorerItem}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Margin="8,0,8,8">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:FileSystemItemViewModel">
+                                    <Grid ColumnDefinitions="3.2*,1.4*,1.1*,1.8*" Margin="8,10">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <TextBlock Text="{Binding Glyph}" Foreground="#82A8DE" VerticalAlignment="Center" />
+                                            <Button Classes="openName"
+                                                    Command="{Binding $parent[Window].DataContext.OpenItemCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="{Binding Name}" />
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="1" Text="{Binding Type}" Foreground="#C8D3E6" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Size}" Foreground="#C8D3E6" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Modified}" Foreground="#C8D3E6" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+
+</Window>
