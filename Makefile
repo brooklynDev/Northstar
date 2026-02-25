@@ -2,6 +2,8 @@ SOLUTION := Northstar.sln
 PROJECT := Northstar.Desktop/Northstar.Desktop.csproj
 APP_NAME := Northstar Explorer
 APP_EXECUTABLE := Northstar.Desktop
+APP_ICON_FILE := NorthstarApp.icns
+DOC_ICON_FILE := NorthstarDocument.icns
 CONFIGURATION ?= Release
 RUNTIMES := osx-arm64 osx-x64
 ARTIFACT_ROOT := artifacts
@@ -32,6 +34,8 @@ $(RUNTIMES):
 	dotnet publish $(PROJECT) -c $(CONFIGURATION) -r $$runtime --self-contained true -o "$$publish_dir"; \
 	mkdir -p "$$bundle_dir/Contents/MacOS" "$$bundle_dir/Contents/Resources"; \
 	cp -R "$$publish_dir/." "$$bundle_dir/Contents/MacOS/"; \
+	cp "Northstar.Desktop/Assets/$(APP_ICON_FILE)" "$$bundle_dir/Contents/Resources/$(APP_ICON_FILE)"; \
+	cp "Northstar.Desktop/Assets/$(DOC_ICON_FILE)" "$$bundle_dir/Contents/Resources/$(DOC_ICON_FILE)"; \
 	chmod +x "$$bundle_dir/Contents/MacOS/$(APP_EXECUTABLE)"; \
 	printf '%s\n' \
 	'<?xml version="1.0" encoding="UTF-8"?>' \
@@ -50,8 +54,25 @@ $(RUNTIMES):
 	'  <string>1.0.0</string>' \
 	'  <key>CFBundlePackageType</key>' \
 	'  <string>APPL</string>' \
+	'  <key>CFBundleIconFile</key>' \
+	'  <string>$(APP_ICON_FILE)</string>' \
 	'  <key>CFBundleExecutable</key>' \
 	'  <string>$(APP_EXECUTABLE)</string>' \
+	'  <key>CFBundleDocumentTypes</key>' \
+	'  <array>' \
+	'    <dict>' \
+	'      <key>CFBundleTypeName</key>' \
+	'      <string>Northstar Document</string>' \
+	'      <key>CFBundleTypeRole</key>' \
+	'      <string>Editor</string>' \
+	'      <key>CFBundleTypeExtensions</key>' \
+	'      <array>' \
+	'        <string>northstar</string>' \
+	'      </array>' \
+	'      <key>CFBundleTypeIconFile</key>' \
+	'      <string>$(DOC_ICON_FILE)</string>' \
+	'    </dict>' \
+	'  </array>' \
 	'  <key>LSMinimumSystemVersion</key>' \
 	'  <string>12.0</string>' \
 	'</dict>' \

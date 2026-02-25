@@ -8,7 +8,7 @@
         d:DesignHeight="820"
         x:Class="Northstar.Desktop.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/northstar-icon.ico"
         Title="Northstar Explorer"
         Width="1280"
         Height="820"
