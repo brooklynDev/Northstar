@@ -134,6 +134,32 @@
             <Setter Property="Background" Value="#233149" />
         </Style>
 
+        <Style Selector="Border.embeddedTerminal">
+            <Setter Property="Background" Value="#08101A" />
+            <Setter Property="BorderBrush" Value="#283246" />
+            <Setter Property="BorderThickness" Value="1,1,0,0" />
+            <Setter Property="Padding" Value="10,8,10,10" />
+        </Style>
+
+        <Style Selector="TextBlock.terminalOutput">
+            <Setter Property="Foreground" Value="#D7E6FF" />
+            <Setter Property="FontFamily" Value="Menlo, Monaco, Courier New" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+        </Style>
+
+        <Style Selector="TextBox.terminalInput">
+            <Setter Property="Background" Value="#0A111D" />
+            <Setter Property="Foreground" Value="#E8F2FF" />
+            <Setter Property="BorderBrush" Value="#1F3047" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontFamily" Value="Menlo, Monaco, Courier New" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+
         <Style Selector="Border.previewPane">
             <Setter Property="Background" Value="#0D1522" />
             <Setter Property="BorderBrush" Value="#2A344A" />
@@ -173,7 +199,7 @@
     </Window.Styles>
 
     <Border Classes="chrome" Margin="14">
-        <Grid RowDefinitions="Auto,*,Auto">
+        <Grid x:Name="RootLayoutGrid" RowDefinitions="Auto,*,Auto,0">
             <Border Classes="toolbar">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -466,10 +492,64 @@
                                VerticalAlignment="Center"
                                FontSize="12" />
                     <Button Grid.Column="1"
+                            x:Name="TerminalToggleButton"
                             Classes="terminalToggle"
                             Click="OpenTerminalButton_OnClick"
                             Content="⌨ Open Terminal"
                             HorizontalAlignment="Right" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3" x:Name="EmbeddedTerminalPane" Classes="embeddedTerminal" IsVisible="False">
+                <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <TextBlock Text="Integrated Terminal"
+                                   Foreground="#D8E5FA"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   x:Name="TerminalShellLabel"
+                                   Foreground="#7F97BA"
+                                   VerticalAlignment="Center"
+                                   FontSize="12" />
+                        <Button Grid.Column="2"
+                                Classes="nav"
+                                Click="TerminalClearButton_OnClick"
+                                Content="Clear"
+                                MinWidth="64" />
+                        <Button Grid.Column="3"
+                                Classes="nav"
+                                Click="TerminalCloseButton_OnClick"
+                                Content="Close"
+                                MinWidth="64" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1"
+                                  x:Name="TerminalOutputScrollViewer"
+                                  Background="#050A12"
+                                  BorderBrush="#1F3047"
+                                  BorderThickness="1"
+                                  CornerRadius="8"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <TextBlock x:Name="TerminalOutputText"
+                                   Classes="terminalOutput"
+                                   Margin="0"
+                                   Padding="8"
+                                   TextWrapping="NoWrap" />
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                        <TextBlock Text=">"
+                                   Foreground="#9EB3D1"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Menlo, Monaco, Courier New" />
+                        <TextBox Grid.Column="1"
+                                 x:Name="TerminalInputBox"
+                                 Classes="terminalInput"
+                                 KeyDown="TerminalInputBox_OnKeyDown"
+                                 Watermark="Type a command and press Enter" />
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

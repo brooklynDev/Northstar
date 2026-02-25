@@ -21,6 +21,7 @@ xattr -dr com.apple.quarantine "Northstar Explorer.app"
 - Dark, desktop-style file browser UI
 - Quick access sidebar + folder listing
 - Breadcrumb/path bar (clickable, editable)
+- Spacebar quick preview for images/text/PDF (auto-hides when unsupported)
 - Sortable columns: Name, Type, Size, Modified
 - Explorer-style keyboard behavior:
   - Type-to-select
@@ -28,7 +29,12 @@ xattr -dr com.apple.quarantine "Northstar Explorer.app"
   - `Backspace` to go back
 - Context menu + shortcuts (`Cmd/Ctrl + C/X/V`, `Delete`, `Cmd/Ctrl + Shift + N`)
 - Auto-refresh when files change in the current folder
-- Open current folder in external terminal app
+- Embedded terminal pane (toggle from footer):
+  - Uses the user's shell (`$SHELL`) as a login shell
+  - ANSI color output rendering
+  - Case-insensitive tab completion with cycling
+  - `cd` in terminal automatically syncs explorer folder
+- External terminal fallback if embedded terminal startup fails
 
 ## Requirements
 

@@ -527,6 +527,16 @@ public partial class MainWindowViewModel : ViewModelBase
         OpenDirectory(item.FullPath);
     }
 
+    public void NavigateToPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        OpenDirectory(path);
+    }
+
     private void OpenDirectory(string path, bool addToHistory = true)
     {
         try
