@@ -1,5 +1,7 @@
 # Northstar Explorer
 
+> **Note:** This project is a work in progress and largely an experiment to see how far I can push vibe coding with Codex.
+
 Northstar is a macOS-focused file explorer built with Avalonia UI, inspired by Windows Explorer interactions.
 
 ![Northstar Screenshot](https://raw.githubusercontent.com/brooklynDev/Northstar/1bce5bc/docs/screenshot.png)
