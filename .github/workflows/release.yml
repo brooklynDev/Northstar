@@ -31,19 +31,19 @@ jobs:
           cp "artifacts/osx-arm64/Northstar Explorer.zip" "artifacts/osx-arm64/Northstar-Explorer-osx-arm64.zip"
           cp "artifacts/osx-x64/Northstar Explorer.zip" "artifacts/osx-x64/Northstar-Explorer-osx-x64.zip"
 
-      - name: Publish Release
+      - name: Publish Rolling Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Northstar Build ${{ github.run_number }}
+          tag_name: latest
+          name: Northstar Latest
           prerelease: false
           make_latest: true
-          target_commitish: ${{ github.sha }}
+          target_commitish: master
           generate_release_notes: false
           fail_on_unmatched_files: true
           overwrite_files: true
           body: |
-            Automated build for commit `${{ github.sha }}` on `${{ github.ref_name }}`.
+            Rolling release for the latest `master` build.
           files: |
             artifacts/osx-arm64/Northstar-Explorer-osx-arm64.zip
             artifacts/osx-x64/Northstar-Explorer-osx-x64.zip
