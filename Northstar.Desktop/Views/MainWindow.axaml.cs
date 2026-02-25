@@ -292,6 +292,16 @@ public partial class MainWindow : Window
         });
     }
 
+    private void OpenTerminalButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.OpenInTerminalCommand.Execute(null);
+    }
+
     private static void TrySelectByPrefix(MainWindowViewModel viewModel, ListBox? listBox, string query)
     {
         if (string.IsNullOrWhiteSpace(query))

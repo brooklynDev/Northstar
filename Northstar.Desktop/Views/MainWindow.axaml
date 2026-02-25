@@ -121,6 +121,21 @@
             <Setter Property="Foreground" Value="#C7D4EB" />
         </Style>
 
+        <Style Selector="Button.terminalToggle">
+            <Setter Property="Background" Value="#1C2738" />
+            <Setter Property="Foreground" Value="#CFE0F6" />
+            <Setter Property="BorderBrush" Value="#35445D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+        </Style>
+
+        <Style Selector="Button.terminalToggle:pointerover">
+            <Setter Property="Background" Value="#233149" />
+        </Style>
+
         <Style Selector="ListBox#ExplorerList ListBoxItem:pointerover TextBlock.fileName">
             <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
@@ -142,7 +157,7 @@
     </Window.Styles>
 
     <Border Classes="chrome" Margin="14">
-        <Grid RowDefinitions="Auto,*">
+        <Grid RowDefinitions="Auto,*,Auto">
             <Border Classes="toolbar">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -365,6 +380,20 @@
                     </Grid>
                 </Border>
             </Grid>
+
+            <Border Grid.Row="2" Background="#0F1623" BorderBrush="#283246" BorderThickness="1,1,0,0" Padding="10,8">
+                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                    <TextBlock Text="Northstar Explorer"
+                               Foreground="#6F84A4"
+                               VerticalAlignment="Center"
+                               FontSize="12" />
+                    <Button Grid.Column="1"
+                            Classes="terminalToggle"
+                            Click="OpenTerminalButton_OnClick"
+                            Content="⌨ Open Terminal"
+                            HorizontalAlignment="Right" />
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 

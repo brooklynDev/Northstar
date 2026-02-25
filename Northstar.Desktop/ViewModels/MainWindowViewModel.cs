@@ -169,6 +169,40 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void OpenInTerminal()
+    {
+        try
+        {
+            if (!OperatingSystem.IsMacOS())
+            {
+                return;
+            }
+
+            var preferredProgram = Environment.GetEnvironmentVariable("TERM_PROGRAM");
+            var candidates = BuildTerminalCandidates(preferredProgram);
+
+            foreach (var appName in candidates)
+            {
+                var started = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "open",
+                    UseShellExecute = false,
+                    ArgumentList = { "-a", appName, CurrentPath },
+                });
+
+                if (started is not null)
+                {
+                    return;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore terminal launch errors in this basic version.
+        }
+    }
+
+    [RelayCommand]
     private void CopyItem(FileSystemItemViewModel? item)
     {
         var target = item ?? SelectedExplorerItem;
@@ -618,6 +652,37 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             // Ignore open failures in this basic version.
         }
+    }
+
+    private static IEnumerable<string> BuildTerminalCandidates(string? preferredProgram)
+    {
+        var candidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(preferredProgram))
+        {
+            if (preferredProgram.Contains("iTerm", StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add("iTerm");
+            }
+            else if (preferredProgram.Contains("Warp", StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add("Warp");
+            }
+            else if (preferredProgram.Contains("WezTerm", StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add("WezTerm");
+            }
+            else if (preferredProgram.Contains("Apple_Terminal", StringComparison.OrdinalIgnoreCase))
+            {
+                candidates.Add("Terminal");
+            }
+        }
+
+        candidates.Add("Terminal");
+        candidates.Add("iTerm");
+        candidates.Add("Warp");
+        candidates.Add("WezTerm");
+
+        return candidates.Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
     private static void CopyEntry(string sourcePath, string destinationPath)
