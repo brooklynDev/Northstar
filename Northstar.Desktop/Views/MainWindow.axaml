@@ -371,6 +371,7 @@
                                  x:Name="ExplorerList"
                                  ItemsSource="{Binding ExplorerItems}"
                                  SelectedItem="{Binding SelectedExplorerItem}"
+                                 SelectionMode="Multiple"
                                  SelectionChanged="ExplorerList_OnSelectionChanged"
                                  DoubleTapped="ExplorerList_OnDoubleTapped"
                                  TextInput="ExplorerList_OnTextInput"

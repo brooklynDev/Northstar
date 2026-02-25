@@ -35,6 +35,21 @@ public partial class MainWindow
 
     private void ExplorerList_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.SelectedExplorerItems.Clear();
+        foreach (var selected in (ExplorerList.SelectedItems?.OfType<FileSystemItemViewModel>() ?? Enumerable.Empty<FileSystemItemViewModel>()))
+        {
+            viewModel.SelectedExplorerItems.Add(selected);
+        }
+
+        var primarySelection = ExplorerList.SelectedItem as FileSystemItemViewModel
+            ?? viewModel.SelectedExplorerItems.FirstOrDefault();
+        viewModel.SelectedExplorerItem = primarySelection;
+
         if (_isQuickPreviewOpen)
         {
             _ = RefreshQuickPreviewAsync();
@@ -77,14 +92,14 @@ public partial class MainWindow
             {
                 if (hasPrimaryModifier && e.Key == Key.C)
                 {
-                    viewModel.CopyItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    viewModel.CopyItemCommand.Execute(null);
                     e.Handled = true;
                     return;
                 }
 
                 if (hasPrimaryModifier && e.Key == Key.X)
                 {
-                    viewModel.CutItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    viewModel.CutItemCommand.Execute(null);
                     e.Handled = true;
                     return;
                 }
@@ -109,7 +124,7 @@ public partial class MainWindow
 
                 if (e.Key is Key.Delete)
                 {
-                    viewModel.DeleteItemCommand.Execute(viewModel.SelectedExplorerItem);
+                    viewModel.DeleteItemCommand.Execute(null);
                     e.Handled = true;
                     return;
                 }

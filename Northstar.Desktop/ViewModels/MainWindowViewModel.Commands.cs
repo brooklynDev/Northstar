@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Northstar.Desktop.Models;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -134,14 +135,14 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void CopyItem(FileSystemItemViewModel? item)
     {
-        var target = item ?? SelectedExplorerItem;
-        if (target is null)
+        var targets = ResolveTargets(item);
+        if (targets.Count == 0)
         {
             return;
         }
 
         _clipboardPaths.Clear();
-        _clipboardPaths.Add(target.FullPath);
+        _clipboardPaths.AddRange(targets.Select(target => target.FullPath));
         _clipboardIsCut = false;
         PasteCommand.NotifyCanExecuteChanged();
     }
@@ -149,14 +150,14 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void CutItem(FileSystemItemViewModel? item)
     {
-        var target = item ?? SelectedExplorerItem;
-        if (target is null)
+        var targets = ResolveTargets(item);
+        if (targets.Count == 0)
         {
             return;
         }
 
         _clipboardPaths.Clear();
-        _clipboardPaths.Add(target.FullPath);
+        _clipboardPaths.AddRange(targets.Select(target => target.FullPath));
         _clipboardIsCut = true;
         PasteCommand.NotifyCanExecuteChanged();
     }
@@ -213,15 +214,19 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void DeleteItem(FileSystemItemViewModel? item)
     {
-        var target = item ?? SelectedExplorerItem;
-        if (target is null)
+        var targets = ResolveTargets(item);
+        if (targets.Count == 0)
         {
             return;
         }
 
         try
         {
-            MoveToTrash(target.FullPath);
+            foreach (var target in targets)
+            {
+                MoveToTrash(target.FullPath);
+            }
+
             OpenDirectory(CurrentPath, addToHistory: false);
         }
         catch
@@ -269,8 +274,8 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void CopyPath(FileSystemItemViewModel? item)
     {
-        var target = item ?? SelectedExplorerItem;
-        if (target is null)
+        var targets = ResolveTargets(item);
+        if (targets.Count == 0)
         {
             return;
         }
@@ -289,7 +294,7 @@ public partial class MainWindowViewModel
                 return;
             }
 
-            process.StandardInput.Write(target.FullPath);
+            process.StandardInput.Write(string.Join(Environment.NewLine, targets.Select(target => target.FullPath)));
             process.StandardInput.Close();
             process.WaitForExit(1000);
         }
@@ -355,6 +360,33 @@ public partial class MainWindowViewModel
         {
             return false;
         }
+    }
+
+    private IReadOnlyList<FileSystemItemViewModel> ResolveTargets(FileSystemItemViewModel? item)
+    {
+        if (item is not null)
+        {
+            if (SelectedExplorerItems.Count > 1 &&
+                SelectedExplorerItems.Any(selected =>
+                    string.Equals(selected.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase)))
+            {
+                return SelectedExplorerItems.ToList();
+            }
+
+            return [item];
+        }
+
+        if (SelectedExplorerItems.Count > 0)
+        {
+            return SelectedExplorerItems.ToList();
+        }
+
+        if (SelectedExplorerItem is not null)
+        {
+            return [SelectedExplorerItem];
+        }
+
+        return [];
     }
 
     [RelayCommand]

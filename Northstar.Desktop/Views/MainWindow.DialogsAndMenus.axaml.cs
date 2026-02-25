@@ -76,8 +76,7 @@ public partial class MainWindow
 
         if (e.GetCurrentPoint(row).Properties.IsRightButtonPressed)
         {
-            viewModel.SelectedExplorerItem = item;
-            ExplorerList.SelectedItem = item;
+            EnsureItemIsContextSelected(viewModel, item);
         }
     }
 
@@ -91,11 +90,10 @@ public partial class MainWindow
         if (contextMenu.PlacementTarget is Control placementTarget &&
             placementTarget.DataContext is FileSystemItemViewModel item)
         {
-            viewModel.SelectedExplorerItem = item;
-            ExplorerList.SelectedItem = item;
+            EnsureItemIsContextSelected(viewModel, item);
         }
 
-        var hasSelection = viewModel.SelectedExplorerItem is not null;
+        var hasSelection = viewModel.SelectedExplorerItem is not null || viewModel.SelectedExplorerItems.Count > 0;
         var canPaste = viewModel.PasteCommand.CanExecute(null);
 
         foreach (var menuItem in EnumerateMenuItems(contextMenu.Items))
@@ -226,6 +224,36 @@ public partial class MainWindow
                 yield return menuItem;
             }
         }
+    }
+
+    private void EnsureItemIsContextSelected(MainWindowViewModel viewModel, FileSystemItemViewModel item)
+    {
+        var selectedItems = ExplorerList.SelectedItems;
+        if (selectedItems is null)
+        {
+            viewModel.SelectedExplorerItem = item;
+            ExplorerList.SelectedItem = item;
+            return;
+        }
+
+        var isAlreadySelected = selectedItems
+            .OfType<FileSystemItemViewModel>()
+            .Any(selected => string.Equals(selected.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase));
+
+        if (!isAlreadySelected)
+        {
+            selectedItems.Clear();
+            selectedItems.Add(item);
+        }
+
+        viewModel.SelectedExplorerItems.Clear();
+        foreach (var selected in selectedItems.OfType<FileSystemItemViewModel>())
+        {
+            viewModel.SelectedExplorerItems.Add(selected);
+        }
+
+        viewModel.SelectedExplorerItem = item;
+        ExplorerList.SelectedItem = item;
     }
 
     private async Task CreateNewFolderAndRenameAsync(MainWindowViewModel viewModel)

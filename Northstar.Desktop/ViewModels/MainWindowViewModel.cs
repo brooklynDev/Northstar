@@ -68,6 +68,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<FileSystemItemViewModel> ExplorerItems { get; } = [];
 
+    public ObservableCollection<FileSystemItemViewModel> SelectedExplorerItems { get; } = [];
+
     public bool IsPathReadMode => !IsPathEditMode;
 
     public string NameSortIndicator => BuildSortIndicator("Name");
