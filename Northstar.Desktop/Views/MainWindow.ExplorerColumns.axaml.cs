@@ -34,7 +34,6 @@ public partial class MainWindow
     private IPointer? _activeResizePointer;
     private double _resizeStartX;
     private double _leftStartWidth;
-    private double _rightStartWidth;
 
     public GridLength NameColumnWidth
     {
@@ -105,7 +104,6 @@ public partial class MainWindow
         _activeResizePointer = e.Pointer;
         _resizeStartX = e.GetPosition(ExplorerHeaderGrid).X;
         _leftStartWidth = GetColumnWidth(boundaryIndex);
-        _rightStartWidth = GetColumnWidth(boundaryIndex + 1);
 
         e.Pointer.Capture(handle);
         e.Handled = true;
@@ -126,14 +124,7 @@ public partial class MainWindow
             adjustedDelta = MinimumExplorerColumnWidth - _leftStartWidth;
         }
 
-        if (_rightStartWidth - adjustedDelta < MinimumExplorerColumnWidth)
-        {
-            adjustedDelta = _rightStartWidth - MinimumExplorerColumnWidth;
-        }
-
         SetColumnWidth(_activeResizeBoundaryIndex, _leftStartWidth + adjustedDelta);
-        SetColumnWidth(_activeResizeBoundaryIndex + 1, _rightStartWidth - adjustedDelta);
-
         _explorerColumnWidthsInitialized = true;
         e.Handled = true;
     }
@@ -210,4 +201,5 @@ public partial class MainWindow
                 throw new ArgumentOutOfRangeException(nameof(index));
         }
     }
+
 }
