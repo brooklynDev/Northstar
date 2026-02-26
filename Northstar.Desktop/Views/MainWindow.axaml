@@ -674,7 +674,7 @@
 
             <Border Grid.Row="3" Background="{DynamicResource StatusBarBackgroundBrush}" BorderBrush="{DynamicResource StatusBarBorderBrush}" BorderThickness="1,1,0,0" Padding="10,8">
                 <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                    <TextBlock Text="Northstar Explorer"
+                    <TextBlock Text="{Binding StatusBarText}"
                                Foreground="{DynamicResource StatusTextForegroundBrush}"
                                VerticalAlignment="Center"
                                FontSize="12" />

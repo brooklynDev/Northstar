@@ -39,6 +39,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string pathInputText = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatusBarText))]
     private FileSystemItemViewModel? selectedExplorerItem;
 
     [ObservableProperty]
@@ -99,6 +100,30 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string ModifiedSortIndicator => BuildSortIndicator("Modified");
 
+    public string StatusBarText
+    {
+        get
+        {
+            var selectedCount = SelectedExplorerItems.Count;
+            if (selectedCount > 1)
+            {
+                return $"{selectedCount} items selected";
+            }
+
+            if (selectedCount == 1)
+            {
+                return SelectedExplorerItems[0].Name;
+            }
+
+            if (SelectedExplorerItem is not null)
+            {
+                return SelectedExplorerItem.Name;
+            }
+
+            return FormatItemCount(ExplorerItems.Count);
+        }
+    }
+
     public MainWindowViewModel()
     {
         var settings = _settingsStore.Load();
@@ -117,10 +142,15 @@ public partial class MainWindowViewModel : ViewModelBase
         Tabs.Add(initialTab);
         SelectedTab = initialTab;
 
+        SelectedExplorerItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(StatusBarText));
+        ExplorerItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(StatusBarText));
+
         OpenDirectory(startPath, addToHistory: false);
     }
 
     partial void OnSearchTextChanged(string value) => ApplySearchFilter();
+
+    private static string FormatItemCount(int count) => count == 1 ? "1 item" : $"{count} items";
 
     partial void OnShowHiddenFilesChanged(bool value)
     {
