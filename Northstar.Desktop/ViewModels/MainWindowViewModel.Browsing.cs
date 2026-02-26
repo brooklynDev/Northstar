@@ -9,6 +9,8 @@ namespace Northstar.Desktop.ViewModels;
 
 public partial class MainWindowViewModel
 {
+    private static readonly IComparer<string?> NameComparer = NaturalStringComparer.OrdinalIgnoreCase;
+
     private void OpenDirectory(string path, bool addToHistory = true)
     {
         try
@@ -79,7 +81,10 @@ public partial class MainWindowViewModel
 
         try
         {
-            foreach (var directory in Directory.EnumerateDirectories(path).OrderBy(d => d, StringComparer.OrdinalIgnoreCase).Take(80))
+            foreach (var directory in Directory
+                         .EnumerateDirectories(path)
+                         .OrderBy(d => Path.GetFileName(d), NameComparer)
+                         .Take(80))
             {
                 if (!ShouldIncludeEntry(directory))
                 {
@@ -194,8 +199,8 @@ public partial class MainWindowViewModel
         }
 
         _allItems = directories
-            .OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
-            .Concat(files.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(i => i.Name, NameComparer)
+            .Concat(files.OrderBy(i => i.Name, NameComparer))
             .ToList();
     }
 
@@ -230,11 +235,11 @@ public partial class MainWindowViewModel
                 ? ordered.ThenBy(item => item.SortModifiedUtc)
                 : ordered.ThenByDescending(item => item.SortModifiedUtc),
             _ => SortAscending
-                ? ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
-                : ordered.ThenByDescending(item => item.Name, StringComparer.OrdinalIgnoreCase),
+                ? ordered.ThenBy(item => item.Name, NameComparer)
+                : ordered.ThenByDescending(item => item.Name, NameComparer),
         };
 
-        return ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase);
+        return ordered.ThenBy(item => item.Name, NameComparer);
     }
 
     private string BuildSortIndicator(string column)
